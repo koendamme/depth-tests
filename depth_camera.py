@@ -36,7 +36,7 @@ class DepthCamera(object):
             depth_image = depth_image * self.depth_scale
             depth_image = self._scale_depth_image(depth_image, self.depth_range)
 
-        color_image = np.asanyarray(color.get_data()) / 255
+        color_image = np.asanyarray(color.get_data())
 
         return depth_image, color_image
 
@@ -53,22 +53,20 @@ def main():
     fps = 60
     depth_range = (.25, 3)
     depth_camera = DepthCamera(depth_range, scale=False, do_align=True)
-
-    # save_dir = "test1"
-    # if not os.path.exists(os.path.join(save_dir, "depth")):
-    #     os.mkdir(os.path.join(save_dir, "depth"))
-    #
-    # if not os.path.exists(os.path.join(save_dir, "color")):
-    #     os.mkdir(os.path.join(save_dir, "color"))
+    save_dir = os.path.join("techmed_test", "test4")
 
     i = 0
+    start = False
     while True:
         depth, color = depth_camera.get_frame()
-        depth_3d = np.stack((depth, depth, depth), axis=-1)
-        # cv2.imwrite(os.path.join(save_dir, "depth", f"frame_{time.time()}.png"), depth*255)
-        # cv2.imwrite(os.path.join(save_dir, "color", f"frame_{time.time()}.png"), color*255)
 
-        concatenated = np.concatenate((depth_3d, color), axis=1)
+        if start:
+            t = time.time()
+            cv2.imwrite(os.path.join(save_dir, "depth", f"frame_{t}.png"), depth)
+            cv2.imwrite(os.path.join(save_dir, "rgb", f"frame_{t}.png"), color)
+
+        depth_3d = np.stack((depth, depth, depth), axis=-1)
+        concatenated = np.concatenate((depth_3d, color/255), axis=1)
 
         cv2.imshow('current_img', concatenated)
         key = cv2.waitKey(int(round(1000 / fps)))
@@ -77,9 +75,11 @@ def main():
             break
 
         if key == ord("a"):
-            cv2.imwrite(os.path.join(f"volume_tests/aruco_volume_test_depth{i}.png"), depth)
-            cv2.imwrite(os.path.join(f"volume_tests/aruco_volume_test_color{i}.png"), color * 255)
-            i+=1
+            print("Started recording")
+            start = True
+            # cv2.imwrite(os.path.join(f"volume_tests/aruco_volume_test_depth{i}.png"), depth)
+            # cv2.imwrite(os.path.join(f"volume_tests/aruco_volume_test_color{i}.png"), color * 255)
+            # i+=1
 
 
 if __name__ == '__main__':
