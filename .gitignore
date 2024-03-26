@@ -3,3 +3,7 @@ depth
 __pycache__
 techmed_test
 report images
+*.h5
+*.xml
+koen_mri_room
+random_tests
