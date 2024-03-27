@@ -7,3 +7,8 @@ report images
 *.xml
 koen_mri_room
 random_tests
+Preiswerk/data
+Preiswerk/datasets
+Preiswerk/experiments
+Preiswerk/OCM-LRCN_example_data.tar.gz
+wandb
