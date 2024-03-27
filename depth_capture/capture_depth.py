@@ -14,8 +14,8 @@ def main():
     i = 0
     while True:
         depth = depth_camera.get_depth_frame()
-        # cv2.imwrite(os.path.join("..", "random_tests", "only_depth_test", "640", f"frame_{i}_{time.time()}.png"), depth)
-        cv2.imwrite(os.path.join("D:", os.sep, "koen_mri_room", "test8_depth_normal", f"frame_{i}_{time.time()}.png"), depth)
+        cv2.imwrite(os.path.join("..", "techmed_test_2703", "Test4", "depth", f"frame_{i}_{time.time()}.png"), depth)
+        # cv2.imwrite(os.path.join("D:", os.sep, "koen_mri_room", "test8_depth_normal", f"frame_{i}_{time.time()}.png"), depth)
         i += 1
 
 

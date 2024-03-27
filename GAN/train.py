@@ -3,9 +3,25 @@ from GAN.GAN_models import Discriminator, Generator
 from GAN.dataset import PreiswerkDataset
 import torch
 from GAN.utils import weights_init, generate_images
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 import wandb
+
+
+def log_batch(us_batch, depth_batch, mri_batch, noise_vector_length, generator, device, mode):
+    noise = torch.normal(0, 1, size=(us_test_batch.shape[0], noise_vector_length), device=device)
+    fake_data = generator(noise, us_batch, depth_batch)
+    fake_image_batch = torch.reshape(fake_data, (us_test_batch.shape[0], mri_test_batch.shape[1], mri_test_batch.shape[2]))
+
+    real_images_to_log = [wandb.Image(mri_batch[i], caption=f"Real {mode} image") for i in
+                          range(mri_test_batch.shape[0])]
+    fake_images_to_log = [wandb.Image(fake_image_batch[i], caption=f"Fake {mode} image") for i in
+                          range(fake_image_batch.shape[0])]
+
+    wandb.log({
+        f"Real {mode} images": real_images_to_log,
+        f"Fake {mode} images": fake_images_to_log
+    })
 
 
 config = dict(
@@ -24,7 +40,11 @@ wandb.init(project="Preiswerk-GAN", config=config)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 dataset = PreiswerkDataset("B", device=device)
-dataloader = DataLoader(dataset, batch_size=config["batch_size"], shuffle=True)
+train_length = int(len(dataset)*.9)
+train, test = random_split(dataset, [train_length, len(dataset) - train_length])
+
+train_dataloader = DataLoader(train, batch_size=config["batch_size"], shuffle=True)
+test_dataloader = DataLoader(test, batch_size=config["batch_size"], shuffle=True)
 
 G = Generator(config["noise_vector_length"], dataset.depth.shape[1], dataset.mri[0].shape, p_dropout=config["p_dropout_G"]).to(device)
 # G.apply(weights_init)
@@ -42,7 +62,7 @@ wandb.watch(D, criterion, log="all", log_freq=10)
 for i_epoch in range(config["n_epochs"]):
     running_discr_loss, running_gen_loss = 0.0, 0.0
 
-    for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(dataloader), desc=f"Epoch {i_epoch+1}: ", total=len(dataset)//config["batch_size"]):
+    for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(train_dataloader), desc=f"Epoch {i_epoch+1}: ", total=len(train)//config["batch_size"]):
         # Update Discriminator
         D.zero_grad()
         # Train with real batch
@@ -57,8 +77,6 @@ for i_epoch in range(config["n_epochs"]):
 
         loss_D_fake = criterion(discr_fake_output, torch.zeros(us_batch.shape[0], 1, device=device))
         loss_D_fake.backward()
-        # for param in D.parameters():
-        #     print(param.grad)
 
         loss_D = loss_D_real + loss_D_fake
         running_discr_loss += loss_D.item()
@@ -81,10 +99,11 @@ for i_epoch in range(config["n_epochs"]):
                 "epoch": i_epoch
             })
 
-    images = []
-    for i in range(fake.shape[0]):
-        images.append(torch.reshape(fake[i], dataset.mri[0].shape))
-    images_to_log = [wandb.Image(image, caption="Example image") for image in images]
-    wandb.log({
-        f"Fake images": images_to_log
-    })
+        if i_batch == 0:
+            log_batch(us_batch, depth_batch, mri_batch, config["noise_vector_length"], G, device, "train")
+
+    for i_test_batch, (us_test_batch, depth_test_batch, mri_test_batch) in tqdm(enumerate(test_dataloader),
+                                                            desc=f"Epoch {i_epoch + 1}: ",
+                                                            total=len(test) // config["batch_size"]):
+
+        log_batch(us_test_batch, depth_test_batch, mri_test_batch, config["noise_vector_length"], G, device, "test")
