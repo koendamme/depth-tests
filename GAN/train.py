@@ -9,12 +9,12 @@ import wandb
 
 
 def log_batch(us_batch, depth_batch, mri_batch, noise_vector_length, generator, device, mode):
-    noise = torch.normal(0, 1, size=(us_test_batch.shape[0], noise_vector_length), device=device)
+    noise = torch.normal(0, 1, size=(us_batch.shape[0], noise_vector_length), device=device)
     fake_data = generator(noise, us_batch, depth_batch)
-    fake_image_batch = torch.reshape(fake_data, (us_test_batch.shape[0], mri_test_batch.shape[1], mri_test_batch.shape[2]))
+    fake_image_batch = torch.reshape(fake_data, (us_batch.shape[0], mri_batch.shape[1], mri_batch.shape[2]))
 
     real_images_to_log = [wandb.Image(mri_batch[i], caption=f"Real {mode} image") for i in
-                          range(mri_test_batch.shape[0])]
+                          range(mri_batch.shape[0])]
     fake_images_to_log = [wandb.Image(fake_image_batch[i], caption=f"Fake {mode} image") for i in
                           range(fake_image_batch.shape[0])]
 
@@ -102,8 +102,6 @@ for i_epoch in range(config["n_epochs"]):
         if i_batch == 0:
             log_batch(us_batch, depth_batch, mri_batch, config["noise_vector_length"], G, device, "train")
 
-    for i_test_batch, (us_test_batch, depth_test_batch, mri_test_batch) in tqdm(enumerate(test_dataloader),
-                                                            desc=f"Epoch {i_epoch + 1}: ",
-                                                            total=len(test) // config["batch_size"]):
-
-        log_batch(us_test_batch, depth_test_batch, mri_test_batch, config["noise_vector_length"], G, device, "test")
+    for i_test_batch, (us_test_batch, depth_test_batch, mri_test_batch) in enumerate(test_dataloader):
+        if i_test_batch == 0:
+            log_batch(us_test_batch, depth_test_batch, mri_test_batch, config["noise_vector_length"], G, device, "test")

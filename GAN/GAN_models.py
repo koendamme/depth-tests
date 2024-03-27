@@ -57,6 +57,8 @@ class Generator(torch.nn.Module):
 
     def forward(self, noise, us, depth):
         us_features = self.us_feature_extractor(us)
+        if us_features.dim() == 1:
+            us_features = us_features[None, :]
 
         x = torch.hstack((noise, us_features, depth))
         return self.model(x)
@@ -87,6 +89,8 @@ class Discriminator(torch.nn.Module):
 
     def forward(self, mr, us, depth):
         us_features = self.us_feature_extractor(us)
+        if us_features.dim() == 1:
+            us_features = us_features[None, :]
         x = torch.hstack((mr, us_features, depth))
 
         return self.model(x)
