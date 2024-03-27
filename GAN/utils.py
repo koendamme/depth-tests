@@ -19,3 +19,7 @@ def generate_images(amount, G, y, output_shape, noise_vector_length, device):
 
     return images
 
+
+def min_max_scale_tensor(data):
+    return (data - torch.min(data))/(torch.max(data) - torch.min(data))
+

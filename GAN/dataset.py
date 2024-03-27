@@ -4,6 +4,7 @@ from torchvision import transforms
 import torch
 import os
 import h5py
+from GAN.utils import min_max_scale_tensor
 
 
 class PreiswerkDataset(Dataset):
@@ -35,6 +36,9 @@ class PreiswerkDataset(Dataset):
 
         self.us = torch.tensor(np.array(grouped), device=device, dtype=torch.float32)
 
+        self.mri = min_max_scale_tensor(self.mri)
+        self.us = min_max_scale_tensor(self.us)
+        self.depth = min_max_scale_tensor(self.depth)
 
     def __len__(self):
         return self.mri.shape[0]
@@ -46,7 +50,6 @@ class PreiswerkDataset(Dataset):
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    normalize = transforms.Normalize(mean=0, std=1)
     data = PreiswerkDataset("B", device)
 
     print(torch.min(data.us), torch.max(data.us))

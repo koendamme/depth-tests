@@ -57,8 +57,8 @@ for i_epoch in range(config["n_epochs"]):
 
         loss_D_fake = criterion(discr_fake_output, torch.zeros(us_batch.shape[0], 1, device=device))
         loss_D_fake.backward()
-        for param in D.parameters():
-            print(param.grad)
+        # for param in D.parameters():
+        #     print(param.grad)
 
         loss_D = loss_D_real + loss_D_fake
         running_discr_loss += loss_D.item()
