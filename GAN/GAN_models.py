@@ -51,7 +51,11 @@ class Generator(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Dropout(p=p_dropout),
 
-            torch.nn.Linear(first_out_features*4, output_image_size[0] * output_image_size[1]),
+            torch.nn.Linear(first_out_features * 4, first_out_features * 8),
+            torch.nn.ReLU(),
+            torch.nn.Dropout(p=p_dropout),
+
+            torch.nn.Linear(first_out_features*8, output_image_size[0] * output_image_size[1]),
             torch.nn.Tanh()
         ])
 
@@ -69,7 +73,7 @@ class Discriminator(torch.nn.Module):
         super(Discriminator, self).__init__()
         self.us_feature_extractor = UsFeatureExtractor(1000)
 
-        first_out_features = 1024
+        first_out_features = 2048
         self.model = torch.nn.Sequential(*[
             torch.nn.Linear(input_image_size[0] * input_image_size[1] + self.us_feature_extractor.output_length + depth_length, first_out_features),
             torch.nn.LeakyReLU(),
@@ -83,7 +87,11 @@ class Discriminator(torch.nn.Module):
             torch.nn.LeakyReLU(),
             torch.nn.Dropout(p=p_dropout),
 
-            torch.nn.Linear(first_out_features // 4, 1),
+            torch.nn.Linear(first_out_features // 4, first_out_features // 8),
+            torch.nn.LeakyReLU(),
+            torch.nn.Dropout(p=p_dropout),
+
+            torch.nn.Linear(first_out_features // 8, 1),
             torch.nn.Sigmoid()
         ])
 

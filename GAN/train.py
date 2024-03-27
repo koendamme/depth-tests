@@ -27,7 +27,7 @@ def log_batch(us_batch, depth_batch, mri_batch, noise_vector_length, generator, 
 config = dict(
     noise_vector_length=150,
     n_epochs=100,
-    lr=.001,
+    lr=.0001,
     batch_size=8,
     p_dropout_G=.2,
     p_dropout_D=.2,
