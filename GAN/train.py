@@ -2,8 +2,9 @@
 from GAN.GAN_models import Discriminator, Generator
 from GAN.dataset import PreiswerkDataset
 import torch
-from GAN.utils import weights_init, generate_images
+from GAN.utils import weights_init, generate_image
 from torch.utils.data import DataLoader, random_split
+from torchvision.utils import save_image
 from tqdm import tqdm
 import wandb
 
@@ -13,15 +14,28 @@ def log_batch(us_batch, depth_batch, mri_batch, noise_vector_length, generator, 
     fake_data = generator(noise, us_batch, depth_batch)
     fake_image_batch = torch.reshape(fake_data, (us_batch.shape[0], mri_batch.shape[1], mri_batch.shape[2]))
 
-    real_images_to_log = [wandb.Image(mri_batch[i], caption=f"Real {mode} image") for i in
-                          range(mri_batch.shape[0])]
-    fake_images_to_log = [wandb.Image(fake_image_batch[i], caption=f"Fake {mode} image") for i in
-                          range(fake_image_batch.shape[0])]
+    concatenated_images = torch.cat([fake_image_batch, mri_batch], dim=2)
+
+    images_to_log = [wandb.Image(concatenated_images[i], caption=f"Image {i}") for i in
+                     range(mri_batch.shape[0])]
 
     wandb.log({
-        f"Real {mode} images": real_images_to_log,
-        f"Fake {mode} images": fake_images_to_log
+        f"{mode} images": images_to_log,
     })
+
+    # noise = torch.normal(0, 1, size=(us_batch.shape[0], noise_vector_length), device=device)
+    # fake_data = generator(noise, us_batch, depth_batch)
+    # fake_image_batch = torch.reshape(fake_data, (us_batch.shape[0], mri_batch.shape[1], mri_batch.shape[2]))
+    #
+    # real_images_to_log = [wandb.Image(mri_batch[i], caption=f"Real {mode} image") for i in
+    #                       range(mri_batch.shape[0])]
+    # fake_images_to_log = [wandb.Image(fake_image_batch[i], caption=f"Fake {mode} image") for i in
+    #                       range(fake_image_batch.shape[0])]
+    #
+    # wandb.log({
+    #     f"Real {mode} images": real_images_to_log,
+    #     f"Fake {mode} images": fake_images_to_log
+    # })
 
 
 config = dict(
@@ -44,7 +58,7 @@ train_length = int(len(dataset)*.9)
 train, test = random_split(dataset, [train_length, len(dataset) - train_length])
 
 train_dataloader = DataLoader(train, batch_size=config["batch_size"], shuffle=True)
-test_dataloader = DataLoader(test, batch_size=config["batch_size"], shuffle=True)
+test_dataloader = DataLoader(test, batch_size=len(test), shuffle=False)
 
 G = Generator(config["noise_vector_length"], dataset.depth.shape[1], dataset.mri[0].shape, p_dropout=config["p_dropout_G"]).to(device)
 # G.apply(weights_init)
@@ -105,3 +119,20 @@ for i_epoch in range(config["n_epochs"]):
     for i_test_batch, (us_test_batch, depth_test_batch, mri_test_batch) in enumerate(test_dataloader):
         if i_test_batch == 0:
             log_batch(us_test_batch, depth_test_batch, mri_test_batch, config["noise_vector_length"], G, device, "test")
+            # noise = torch.normal(0, 1, size=(us_test_batch.shape[0], config["noise_vector_length"]), device=device)
+            # fake_data = G(noise, us_test_batch, depth_test_batch)
+            # fake_image_batch = torch.reshape(fake_data, (us_test_batch.shape[0], mri_test_batch.shape[1], mri_test_batch.shape[2]))
+            #
+            # print(fake_image_batch.shape, mri_test_batch.shape)
+            #
+            # concatenated_images = torch.cat([fake_image_batch, mri_test_batch], dim=2)
+            # save_image(concatenated_images[0], f"epoch_{i_epoch}.png")
+            #
+            # images_to_log = [wandb.Image(concatenated_images[i], caption=f"Image {i}") for i in
+            #                       range(mri_test_batch.shape[0])]
+            #
+            # wandb.log({
+            #     f"Test images": images_to_log,
+            # })
+
+

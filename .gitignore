@@ -13,3 +13,5 @@ Preiswerk/experiments
 Preiswerk/OCM-LRCN_example_data.tar.gz
 wandb
 techmed_test_2703/
+GAN/train_video/3-4-1057
+GAN/train_video/*.avi

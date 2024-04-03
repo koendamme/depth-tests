@@ -8,16 +8,10 @@ def weights_init(m):
         m.weight.data.normal_(0.0, 0.02)
 
 
-def generate_images(amount, G, y, output_shape, noise_vector_length, device):
-    noise = torch.normal(0, 1, size=(amount, noise_vector_length), device=device)
-    G_output = G(noise, y)
-
-    images = []
-
-    for i in range(amount):
-        images.append(torch.reshape(G_output[i], output_shape))
-
-    return images
+def generate_image(amount, G, us, depth, output_shape, noise_vector_length, device):
+    noise = torch.normal(0, 1, size=(1, noise_vector_length), device=device)
+    G_output = G(noise, us[None], depth[None])
+    return torch.reshape(G_output[0], output_shape)
 
 
 def min_max_scale_tensor(data):
