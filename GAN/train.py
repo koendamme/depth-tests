@@ -23,20 +23,6 @@ def log_batch(us_batch, depth_batch, mri_batch, noise_vector_length, generator, 
         f"{mode} images": images_to_log,
     })
 
-    # noise = torch.normal(0, 1, size=(us_batch.shape[0], noise_vector_length), device=device)
-    # fake_data = generator(noise, us_batch, depth_batch)
-    # fake_image_batch = torch.reshape(fake_data, (us_batch.shape[0], mri_batch.shape[1], mri_batch.shape[2]))
-    #
-    # real_images_to_log = [wandb.Image(mri_batch[i], caption=f"Real {mode} image") for i in
-    #                       range(mri_batch.shape[0])]
-    # fake_images_to_log = [wandb.Image(fake_image_batch[i], caption=f"Fake {mode} image") for i in
-    #                       range(fake_image_batch.shape[0])]
-    #
-    # wandb.log({
-    #     f"Real {mode} images": real_images_to_log,
-    #     f"Fake {mode} images": fake_images_to_log
-    # })
-
 
 config = dict(
     noise_vector_length=150,
@@ -74,8 +60,6 @@ wandb.watch(G, criterion, log="all", log_freq=10)
 wandb.watch(D, criterion, log="all", log_freq=10)
 
 for i_epoch in range(config["n_epochs"]):
-    running_discr_loss, running_gen_loss = 0.0, 0.0
-
     for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(train_dataloader), desc=f"Epoch {i_epoch+1}: ", total=len(train)//config["batch_size"]):
         # Update Discriminator
         D.zero_grad()
@@ -93,7 +77,6 @@ for i_epoch in range(config["n_epochs"]):
         loss_D_fake.backward()
 
         loss_D = loss_D_real + loss_D_fake
-        running_discr_loss += loss_D.item()
 
         discr_optimizer.step()
 
@@ -101,8 +84,6 @@ for i_epoch in range(config["n_epochs"]):
         G.zero_grad()
         discr_output = D(fake, us_batch, depth_batch)
         loss_G = criterion(discr_output, torch.ones(us_batch.shape[0], 1, device=device))
-        running_gen_loss += loss_G.item()
-
         loss_G.backward()
         gen_optimizer.step()
 
@@ -119,20 +100,5 @@ for i_epoch in range(config["n_epochs"]):
     for i_test_batch, (us_test_batch, depth_test_batch, mri_test_batch) in enumerate(test_dataloader):
         if i_test_batch == 0:
             log_batch(us_test_batch, depth_test_batch, mri_test_batch, config["noise_vector_length"], G, device, "test")
-            # noise = torch.normal(0, 1, size=(us_test_batch.shape[0], config["noise_vector_length"]), device=device)
-            # fake_data = G(noise, us_test_batch, depth_test_batch)
-            # fake_image_batch = torch.reshape(fake_data, (us_test_batch.shape[0], mri_test_batch.shape[1], mri_test_batch.shape[2]))
-            #
-            # print(fake_image_batch.shape, mri_test_batch.shape)
-            #
-            # concatenated_images = torch.cat([fake_image_batch, mri_test_batch], dim=2)
-            # save_image(concatenated_images[0], f"epoch_{i_epoch}.png")
-            #
-            # images_to_log = [wandb.Image(concatenated_images[i], caption=f"Image {i}") for i in
-            #                       range(mri_test_batch.shape[0])]
-            #
-            # wandb.log({
-            #     f"Test images": images_to_log,
-            # })
 
 

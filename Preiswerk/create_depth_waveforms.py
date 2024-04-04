@@ -17,7 +17,7 @@ def main():
 
         dists = np.mean(np.abs(d - d[0, :]), axis=1)
 
-        patient = p.split("\\")[1]
+        patient = p.split("/")[1]
         plt.title(f"Depth waveform patient {patient}")
         plt.xlabel("Frame")
         plt.ylabel("Distance")
