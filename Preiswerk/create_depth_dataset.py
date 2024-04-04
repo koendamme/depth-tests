@@ -35,6 +35,8 @@ def main():
         # os.path.join("datasets", "H", "2")
     ]
 
+
+
     for p in patient_paths:
         print(p)
         with h5py.File(os.path.join(p, "mr_data.h5"), "r") as f:
@@ -47,21 +49,18 @@ def main():
 
                 scaled = (d - x_min) / (x_max - x_min)
                 rotated = cv2.rotate(scaled, cv2.ROTATE_90_CLOCKWISE)
+                edge = np.zeros(rotated.shape)
+                edge[50:180, :] = extract_edge(rotated)
+
                 rgb = np.repeat(rotated[:, :, None], 3, axis=2)
-                print(rgb.shape)
-                cv2.imshow("window", rgb)
+                color_edge = np.stack([np.zeros(edge.shape), np.zeros(edge.shape), edge], axis=-1)
 
-                edge = extract_edge(rotated)
-
-                # print(np.where(edge == 1))
-
-                cv2.imshow("window with edge", edge)
+                cv2.imshow("window with edge", rgb + color_edge)
 
                 cv2.waitKey(200)
-
-                for j in range(edge.shape[0]):
+                for j in range(50, 180):
                     curr_pos = np.where(edge[j] != 0)[0]
-                    depth_dataset[i, j] = curr_pos
+                    depth_dataset[i, j - 50] = curr_pos
 
             with open(os.path.join(p, "depth_data.npy"), "wb") as file:
                 np.save(file, depth_dataset)

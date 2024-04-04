@@ -2,8 +2,10 @@ import numpy as np
 from torch.utils.data import Dataset
 import torch
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import h5py
 from GAN.utils import min_max_scale_tensor
+import matplotlib.pyplot as plt
 
 
 class PreiswerkDataset(Dataset):
@@ -50,20 +52,10 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     data = PreiswerkDataset("B", device)
-
-    print(torch.min(data.us), torch.max(data.us))
-    print(torch.min(data.depth), torch.max(data.depth))
-    print(torch.min(data.mri), torch.max(data.mri))
-
-    print(data.mri[0])
-
-    # U_0 = data.us.cpu().numpy()[data.mr2us[0][0]:data.mr2us[1][0], 500:1000]
-    # U_0 = data.us.cpu().numpy()[:200, :]
-    # min, max = np.min(U_0), np.max(U_0)
-    #
-    # scaled = (U_0 - min)/(max - min)
-    # plt.title("original")
-    # plt.imshow(U_0, cmap="gray")
+    print(len(data))
+    # plt.imshow(data.us[0][:, :100].T, cmap="gray")
+    # plt.xlabel("Time")
     # plt.show()
-    # print(data.us.shape)
+    # print(data.us[0].shape)
+
 
