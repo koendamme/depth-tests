@@ -46,32 +46,55 @@ class Generator(torch.nn.Module):
 
 
 class Discriminator(torch.nn.Module):
-    def __init__(self, n_channels):
+    def __init__(self):
         super(Discriminator, self).__init__()
-        self.layers = torch.nn.ModuleList([])
-        self.fromgray_layers = torch.nn.ModuleList([])
 
-        # self.layers.append(ConvBlock(1, 1))
+        self.fromgray_layers = torch.nn.ModuleList([
+            torch.nn.Conv2d(in_channels=1, out_channels=16, kernel_size=1),
+            torch.nn.Conv2d(in_channels=1, out_channels=64, kernel_size=1),
+            torch.nn.Conv2d(in_channels=1, out_channels=128, kernel_size=1),
+            torch.nn.Conv2d(in_channels=1, out_channels=256, kernel_size=1),
+            # torch.nn.Conv2d(in_channels=1, out_channels=256, kernel_size=1),
+            torch.nn.Conv2d(in_channels=1, out_channels=512, kernel_size=1),
+            torch.nn.Conv2d(in_channels=1, out_channels=512, kernel_size=1)
+        ])
 
-        for i in range(0, len(n_channels) - 1):
-            self.layers.append(ConvBlock(n_channels[i], n_channels[i+1]))
-            self.fromgray_layers.append(torch.nn.Conv2d(in_channels=1, out_channels=n_channels[i], kernel_size=1))
+        self.layers = torch.nn.ModuleList([
+            ConvBlock(16, 64),
+            ConvBlock(64, 128),
+            ConvBlock(128, 256),
+            ConvBlock(256, 512),
+            # ConvBlock(256, 512),
+            ConvBlock(512, 512),
+            ConvBlock(512, 512),
+        ])
 
-        self.fromgray_layers.append(torch.nn.Conv2d(in_channels=1, out_channels=n_channels[-1], kernel_size=1))
-
-
-        print(self.layers)
-        print(self.fromgray_layers)
+        self.final_block = torch.nn.Sequential(*[
+            torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1),
+            torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=4)
+        ])
 
     def forward(self, x, step):
-        print(len(self.fromgray_layers) - step - 1)
         x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](x)
 
-        for i in range(len(self.layers)-step, len(self.layers)):
+        for i in range(len(self.layers)-step - 1, len(self.layers)):
             x = self.layers[i](x)
             x = F.avg_pool2d(x, kernel_size=2)
 
+        # TODO batch std
+        x = self.final_block(x)
+
         return x
+
+
+
+        # x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](x)
+        #
+        # for i in range(len(self.layers)-step, len(self.layers)):
+        #     x = self.layers[i](x)
+        #     x = F.avg_pool2d(x, kernel_size=2)
+        #
+        # return x
 
 
 
@@ -87,18 +110,16 @@ def main():
     # dataloader = DataLoader(data, batch_size=8, shuffle=True)
     # batch = next(iter(dataloader))
 
-    n_channels = [512, 512, 256, 128, 64, 16]
-    n_channels.reverse()
-    D = Discriminator(n_channels)
+    D = Discriminator()
     # print(D)
 
     # input = torch.randn((4, 1, 4, 4))
     # print(input.shape)
 
-    for step in range(7):
+    for step in range(6):
         print("-----")
         print(f"step {step}")
-        res = 2**(step+2)
+        res = 2**(step+3)
         print(res)
         input = torch.randn(4, 1, res, res)
         o = D(input, step)
