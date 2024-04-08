@@ -4,6 +4,16 @@ from torch.utils.data import DataLoader
 from GAN.dataset import PreiswerkDataset
 
 
+class MiniBatchStd(torch.nn.Module):
+    def __init__(self):
+        super(MiniBatchStd, self).__init__()
+
+    def forward(self, x):
+        minibatch_std = torch.std(x, dim=0).mean().repeat(x.shape[0], 1, x.shape[2], x.shape[3])
+
+        return torch.cat([x, minibatch_std], dim=1)
+
+
 class ConvBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels):
         super(ConvBlock, self).__init__()
@@ -89,8 +99,8 @@ class Discriminator(torch.nn.Module):
             ConvBlock(512, 512),
             ConvBlock(512, 512),
             torch.nn.Sequential(*[
-                # TODO batch std
-                torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1),
+                MiniBatchStd(),
+                torch.nn.Conv2d(in_channels=513, out_channels=512, kernel_size=3, padding=1),
                 torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=4),
                 torch.nn.Flatten(start_dim=1),
                 torch.nn.Linear(in_features=512, out_features=1)
@@ -121,10 +131,10 @@ def main():
 
     D = Discriminator()
     G = Generator(512)
-    # print(D)
+    print(D)
 
-    # input = torch.randn((4, 1, 4, 4))
-    # print(input.shape)
+    input = torch.randn((4, 1, 4, 4))
+    print(input.shape)
 
     for step in range(7):
         print("-----")
