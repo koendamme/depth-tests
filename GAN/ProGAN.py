@@ -19,8 +19,17 @@ class MiniBatchStd(torch.nn.Module):
         return torch.cat([x, minibatch_std], dim=1)
 
 
+class PixelWiseNormalization(torch.nn.Module):
+    def __init__(self):
+        super(PixelWiseNormalization, self).__init__()
+        self.epsilon = 1e-8
+
+    def forward(self, x):
+        return x / torch.sqrt(torch.mean(x ** 2, dim=1, keepdim=True) + self.epsilon)
+
+
 class WeightedConv2d(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, padding):
+    def __init__(self, in_channels, out_channels, kernel_size, padding=0):
         super(WeightedConv2d, self).__init__()
 
         self.conv = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, padding=padding)
@@ -36,56 +45,56 @@ class WeightedConv2d(torch.nn.Module):
 
 
 class ConvBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, apply_pixelnorm = False):
         super(ConvBlock, self).__init__()
+        self.apply_pixelnorm = apply_pixelnorm
+        self.conv1 = WeightedConv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1)
+        self.leaky_relu = torch.nn.LeakyReLU(0.2)
+        self.conv2 = WeightedConv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+        self.pixelnorm = PixelWiseNormalization()
 
-        self.block = torch.nn.Sequential(*[
-            WeightedConv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1),
-            torch.nn.LeakyReLU(0.2),
-            WeightedConv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1),
-            torch.nn.LeakyReLU(0.2),
-        ])
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.pixelnorm(x) if self.apply_pixelnorm else x
+        x = self.leaky_relu(x)
 
-    def forward(self, input):
-        x = self.block(input)
+        x = self.conv2(x)
+        x = self.pixelnorm(x) if self.apply_pixelnorm else x
+        x = self.leaky_relu(x)
+
         return x
 
 
 class Generator(torch.nn.Module):
     def __init__(self, in_channels):
         super(Generator, self).__init__()
-        # self.initial_block = torch.nn.Sequential(*[
-        #     torch.nn.ConvTranspose2d(in_channels=in_channels, out_channels=in_channels, kernel_size=4, stride=1, padding=0),
-        #     torch.nn.LeakyReLU(0.2),
-        #     WeightedConv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1),
-        #     torch.nn.LeakyReLU(0.2)
-        # ])
-
         self.togray_layers = torch.nn.ModuleList([
-            torch.nn.Conv2d(in_channels=512, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=512, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=512, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=256, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=128, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=64, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=16, out_channels=1, kernel_size=1),
-            torch.nn.Conv2d(in_channels=8, out_channels=1, kernel_size=1)
+            WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=256, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=128, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=64, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=16, out_channels=1, kernel_size=1),
+            WeightedConv2d(in_channels=8, out_channels=1, kernel_size=1)
         ])
 
         self.layers = torch.nn.ModuleList([
             torch.nn.Sequential(*[
                 torch.nn.ConvTranspose2d(in_channels=in_channels, out_channels=in_channels, kernel_size=4, stride=1, padding=0),
+                PixelWiseNormalization(),
                 torch.nn.LeakyReLU(0.2),
                 WeightedConv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1),
-                torch.nn.LeakyReLU(0.2)
+                torch.nn.LeakyReLU(0.2),
+                PixelWiseNormalization(),
             ]),
-            ConvBlock(512, 512),
-            ConvBlock(512, 512),
-            ConvBlock(512, 256),
-            ConvBlock(256, 128),
-            ConvBlock(128, 64),
-            ConvBlock(64, 16),
-            ConvBlock(16, 8)
+            ConvBlock(512, 512, apply_pixelnorm=True),
+            ConvBlock(512, 512, apply_pixelnorm=True),
+            ConvBlock(512, 256, apply_pixelnorm=True),
+            ConvBlock(256, 128, apply_pixelnorm=True),
+            ConvBlock(128, 64, apply_pixelnorm=True),
+            ConvBlock(64, 16, apply_pixelnorm=True),
+            ConvBlock(16, 8, apply_pixelnorm=True)
         ])
 
     def forward(self, x, step):
@@ -103,13 +112,13 @@ class Discriminator(torch.nn.Module):
         super(Discriminator, self).__init__()
 
         self.fromgray_layers = torch.nn.ModuleList([
-            torch.nn.Conv2d(in_channels=1, out_channels=16, kernel_size=1),
-            torch.nn.Conv2d(in_channels=1, out_channels=64, kernel_size=1),
-            torch.nn.Conv2d(in_channels=1, out_channels=128, kernel_size=1),
-            torch.nn.Conv2d(in_channels=1, out_channels=256, kernel_size=1),
-            torch.nn.Conv2d(in_channels=1, out_channels=512, kernel_size=1),
-            torch.nn.Conv2d(in_channels=1, out_channels=512, kernel_size=1),
-            torch.nn.Conv2d(in_channels=1, out_channels=512, kernel_size=1)
+            WeightedConv2d(in_channels=1, out_channels=16, kernel_size=1),
+            WeightedConv2d(in_channels=1, out_channels=64, kernel_size=1),
+            WeightedConv2d(in_channels=1, out_channels=128, kernel_size=1),
+            WeightedConv2d(in_channels=1, out_channels=256, kernel_size=1),
+            WeightedConv2d(in_channels=1, out_channels=512, kernel_size=1),
+            WeightedConv2d(in_channels=1, out_channels=512, kernel_size=1),
+            WeightedConv2d(in_channels=1, out_channels=512, kernel_size=1)
         ])
 
         self.layers = torch.nn.ModuleList([
@@ -170,6 +179,7 @@ def main():
 
         d_o = D(o, step)
         print("Discriminator output", d_o.shape)
+
 
 
 if __name__ == '__main__':
