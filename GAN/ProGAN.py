@@ -4,11 +4,6 @@ from torch.utils.data import DataLoader
 from GAN.dataset import PreiswerkDataset
 
 
-def init_normal_weights(m):
-    if isinstance(m, torch.nn.Conv2d):
-        m.weight.data.normal_(0, 1)
-
-
 class MiniBatchStd(torch.nn.Module):
     def __init__(self):
         super(MiniBatchStd, self).__init__()
@@ -160,10 +155,7 @@ def main():
     # batch = next(iter(dataloader))
 
     D = Discriminator()
-    D.apply(init_normal_weights)
-
     G = Generator(512)
-    G.apply(init_normal_weights)
 
     input = torch.randn((4, 1, 4, 4))
     print(input.shape)
@@ -179,7 +171,6 @@ def main():
 
         d_o = D(o, step)
         print("Discriminator output", d_o.shape)
-
 
 
 if __name__ == '__main__':
