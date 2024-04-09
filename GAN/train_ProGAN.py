@@ -30,12 +30,12 @@ def main():
     curr_alpha = 1
     desired_resolution = 256
     total_steps = 1 + math.log2(desired_resolution/4)
-    epochs_per_step = n_epochs / total_steps
+    epochs_per_step = n_epochs // total_steps
     for i in range(n_epochs):
         for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(train_dataloader),
-                                                                desc=f"Epoch {i + 1}: ",
+                                                                desc=f"Epoch {i + 1}, step {curr_step}: ",
                                                                 total=len(train) // batch_size):
-            if i % epochs_per_step == 0:
+            if (i + 1) % int(epochs_per_step) == 0:
                 curr_step += 1
                 # corr_alpha = 0
 
