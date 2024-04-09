@@ -132,13 +132,17 @@ class Discriminator(torch.nn.Module):
             ])
         ])
 
-    def forward(self, x, step):
-        x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](x)
-        for i in range(len(self.layers)-step - 1, len(self.layers)):
+    def forward(self, input, step, alpha):
+        x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](input)
+        x_hat = F.avg_pool2d(input, kernel_size=2)
+        for i in range(len(self.layers) - step - 1, len(self.layers)):
             x = self.layers[i](x)
 
-            # Dont pool for the last layer
+            # Don't pool for the last layer
             x = F.avg_pool2d(x, kernel_size=2) if i != len(self.layers) - 1 else x
+
+            # Fade-in in first layer except for step 0
+            x = x_hat * (1-alpha) + x * alpha if i == len(self.layers) - step - 1 and step != 0 else x
 
         return x
 
@@ -169,7 +173,7 @@ def main():
         o = G(input, step)
         print("Generator output: ", o.shape)
 
-        d_o = D(o, step)
+        d_o = D(o, step, .5)
         print("Discriminator output", d_o.shape)
 
 
