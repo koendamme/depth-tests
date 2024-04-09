@@ -26,17 +26,23 @@ def main():
     discr_optimizer = torch.optim.Adam(D.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
 
     n_epochs = 100
-    curr_step = 0
+    curr_step = -1
     curr_alpha = 1
     desired_resolution = 256
     total_steps = 1 + math.log2(desired_resolution/4)
     epochs_per_step = n_epochs // total_steps
     for i in range(n_epochs):
+        # print(epochs_per_step,)
+        # if i % epochs_per_step == 0:
+        #     curr_step += 1
+        curr_step = curr_step + 1 if i % epochs_per_step == 0 else curr_step
+
         for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(train_dataloader),
                                                                 desc=f"Epoch {i + 1}, step {curr_step}: ",
                                                                 total=len(train) // batch_size):
-            if (i + 1) % int(epochs_per_step) == 0:
-                curr_step += 1
+            # if (i + 1) % int(epochs_per_step) == 0 and curr_step+1 < total_steps:
+            #     print("Next step")
+            #     curr_step += 1
                 # corr_alpha = 0
 
             D.zero_grad()
