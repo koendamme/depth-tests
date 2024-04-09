@@ -88,8 +88,7 @@ class Generator(torch.nn.Module):
             ConvBlock(512, 256, apply_pixelnorm=True),
             ConvBlock(256, 128, apply_pixelnorm=True),
             ConvBlock(128, 64, apply_pixelnorm=True),
-            ConvBlock(64, 16, apply_pixelnorm=True),
-            ConvBlock(16, 8, apply_pixelnorm=True)
+            ConvBlock(64, 16, apply_pixelnorm=True)
         ])
 
     def forward(self, x, step, alpha):
@@ -99,7 +98,6 @@ class Generator(torch.nn.Module):
 
             x = self.layers[i](x_upscaled)
 
-        print(x.shape, x_upscaled.shape, step)
         x = self.togray_layers[step](x)
 
         # Fade-in except on step 0

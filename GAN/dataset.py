@@ -52,7 +52,10 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     data = PreiswerkDataset("B", device)
-    print(len(data))
+    print(data.mri[:4, None].shape)
+    resized = torch.nn.functional.adaptive_avg_pool2d(data.mri[:4], (32, 32))
+    print(resized[:, None].shape)
+    # print(len(data))
     # plt.imshow(data.us[0][:, :100].T, cmap="gray")
     # plt.xlabel("Time")
     # plt.show()
