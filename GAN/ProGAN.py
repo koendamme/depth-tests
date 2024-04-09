@@ -92,13 +92,18 @@ class Generator(torch.nn.Module):
             ConvBlock(16, 8, apply_pixelnorm=True)
         ])
 
-    def forward(self, x, step):
+    def forward(self, x, step, alpha):
         for i in range(step + 1):
-            # Dont upsample the first layer
-            x = F.interpolate(x, scale_factor=2, mode='nearest') if i != 0 else x
-            x = self.layers[i](x)
+            # Don't upsample the first layer
+            x_upscaled = F.interpolate(x, scale_factor=2, mode='nearest') if i != 0 else x
 
+            x = self.layers[i](x_upscaled)
+
+        print(x.shape, x_upscaled.shape, step)
         x = self.togray_layers[step](x)
+
+        # Fade-in except on step 0
+        x = x * alpha + self.togray_layers[step-1](x_upscaled) * (1 - alpha) if step != 0 else x
         return x
 
 
@@ -134,6 +139,7 @@ class Discriminator(torch.nn.Module):
 
     def forward(self, input, step, alpha):
         x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](input)
+
         x_hat = F.avg_pool2d(input, kernel_size=2)
         for i in range(len(self.layers) - step - 1, len(self.layers)):
             x = self.layers[i](x)
@@ -146,10 +152,6 @@ class Discriminator(torch.nn.Module):
 
         return x
 
-
-class ProGAN(torch.nn.Module):
-    def __init__(self):
-        super(ProGAN, self).__init__()
 
 
 def main():
@@ -170,7 +172,7 @@ def main():
         # res = 2**(step+3)
         input = torch.randn(4, 512, 1, 1)
 
-        o = G(input, step)
+        o = G(input, step, .5)
         print("Generator output: ", o.shape)
 
         d_o = D(o, step, .5)
