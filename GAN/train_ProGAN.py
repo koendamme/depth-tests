@@ -6,6 +6,12 @@ from tqdm import tqdm
 import math
 
 
+def get_alpha(curr_epoch, epochs_per_step, quickness):
+    alpha = quickness*(curr_epoch % epochs_per_step)/epochs_per_step
+
+    return alpha if alpha <= 1 else 1
+
+
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -32,18 +38,12 @@ def main():
     total_steps = 1 + math.log2(desired_resolution/4)
     epochs_per_step = n_epochs // total_steps
     for i in range(n_epochs):
-        # print(epochs_per_step,)
-        # if i % epochs_per_step == 0:
-        #     curr_step += 1
         curr_step = curr_step + 1 if i % epochs_per_step == 0 else curr_step
+        curr_alpha = get_alpha(i, epochs_per_step, quickness=2)
 
         for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(train_dataloader),
-                                                                desc=f"Epoch {i + 1}, step {curr_step}: ",
+                                                                desc=f"Epoch {i + 1}, step {curr_step}, alpha {round(curr_alpha, 2)}: ",
                                                                 total=len(train) // batch_size):
-            # if (i + 1) % int(epochs_per_step) == 0 and curr_step+1 < total_steps:
-            #     print("Next step")
-            #     curr_step += 1
-                # corr_alpha = 0
 
             D.zero_grad()
             # TODO implement step and alpha
@@ -52,7 +52,7 @@ def main():
             d_fake = D(fake, curr_step, curr_alpha)
 
             real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4*2**curr_step, 4*2**curr_step))
-            d_real = D(real_input[:, None], curr_step, curr_alpha)                  # TODO MRI batch needs to be correct resolution
+            d_real = D(real_input[:, None], curr_step, curr_alpha)
             d_loss = torch.mean(d_real) - torch.mean(d_fake)
             d_loss.backward()
             discr_optimizer.step()
