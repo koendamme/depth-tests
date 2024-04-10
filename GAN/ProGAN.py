@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from GAN.dataset import PreiswerkDataset
+from GAN.us_feature_extractor import UsFeatureExtractor
 
 
 class MiniBatchStd(torch.nn.Module):
@@ -61,8 +60,11 @@ class ConvBlock(torch.nn.Module):
 
 
 class Generator(torch.nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, depth_feature_length, noise_length):
         super(Generator, self).__init__()
+        self.us_feature_extractor = UsFeatureExtractor(1000)
+        self.initial_layer = WeightedConv2d(in_channels=self.us_feature_extractor.output_length + depth_feature_length + noise_length, out_channels=512, kernel_size=1)
+
         self.togray_layers = torch.nn.ModuleList([
             WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
             WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
@@ -76,10 +78,10 @@ class Generator(torch.nn.Module):
 
         self.layers = torch.nn.ModuleList([
             torch.nn.Sequential(*[
-                torch.nn.ConvTranspose2d(in_channels=in_channels, out_channels=in_channels, kernel_size=4, stride=1, padding=0),
+                torch.nn.ConvTranspose2d(in_channels=512, out_channels=512, kernel_size=4, stride=1, padding=0),
                 PixelWiseNormalization(),
                 torch.nn.LeakyReLU(0.2),
-                WeightedConv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1),
+                WeightedConv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1),
                 torch.nn.LeakyReLU(0.2),
                 PixelWiseNormalization(),
             ]),
@@ -91,7 +93,13 @@ class Generator(torch.nn.Module):
             ConvBlock(64, 16, apply_pixelnorm=True)
         ])
 
-    def forward(self, x, step, alpha):
+    def forward(self, x, us, depth, step, alpha):
+        # Extract features from surrogates and concat with noise
+        us_features = self.us_feature_extractor(us)[:, :, None, None]
+        depth = depth[:, :, None, None]
+        x = torch.concatenate([us_features, depth, x], dim=1)
+        x = self.initial_layer(x)
+
         for i in range(step + 1):
             # Don't upsample the first layer
             x_upscaled = F.interpolate(x, scale_factor=2, mode='nearest') if i != 0 else x
@@ -106,8 +114,9 @@ class Generator(torch.nn.Module):
 
 
 class Discriminator(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, depth_feature_length):
         super(Discriminator, self).__init__()
+        self.us_feature_extractor = UsFeatureExtractor(1000)
 
         self.fromgray_layers = torch.nn.ModuleList([
             WeightedConv2d(in_channels=1, out_channels=16, kernel_size=1),
@@ -130,14 +139,17 @@ class Discriminator(torch.nn.Module):
                 MiniBatchStd(),
                 WeightedConv2d(in_channels=513, out_channels=512, kernel_size=3, padding=1),
                 WeightedConv2d(in_channels=512, out_channels=512, kernel_size=4, padding=0),
-                torch.nn.Flatten(start_dim=1),
-                torch.nn.Linear(in_features=512, out_features=1)
+                # torch.nn.Flatten(start_dim=1),
+                # torch.nn.Linear(in_features=512, out_features=1)
             ])
         ])
 
-    def forward(self, input, step, alpha):
-        x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](input)
+        self.final_layer = torch.nn.Linear(in_features=self.us_feature_extractor.output_length + depth_feature_length + 512, out_features=1)
 
+    def forward(self, input, us, depth, step, alpha):
+        us_features = self.us_feature_extractor(us)
+
+        x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](input)
         x_hat = F.avg_pool2d(input, kernel_size=2)
         for i in range(len(self.layers) - step - 1, len(self.layers)):
             x = self.layers[i](x)
@@ -148,6 +160,8 @@ class Discriminator(torch.nn.Module):
             # Fade-in in first layer except for step 0
             x = x_hat * (1-alpha) + x * alpha if i == len(self.layers) - step - 1 and step != 0 else x
 
+        x = torch.concatenate([x[:, :, 0, 0], us_features, depth], dim=1)
+        x = self.final_layer(x)
         return x
 
 

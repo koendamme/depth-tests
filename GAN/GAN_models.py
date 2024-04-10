@@ -1,36 +1,6 @@
 import torch
 from GAN.dataset import PreiswerkDataset
-
-
-class ConvBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(ConvBlock, self).__init__()
-
-        self.conv = torch.nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=2)
-        self.pool = torch.nn.AvgPool1d(kernel_size=2)
-        self.dropout = torch.nn.Dropout(p=.2)
-
-    def forward(self, input):
-        x = self.conv(input)[:, :, :-2]    # Causal convolution
-        x = self.pool(x)
-        x = self.dropout(x)
-        return x
-
-
-class UsFeatureExtractor(torch.nn.Module):
-    def __init__(self, input_length):
-        super(UsFeatureExtractor, self).__init__()
-
-        self.output_length = input_length//2//2//2//2
-        self.model = torch.nn.Sequential(*[
-            ConvBlock(64, 64),
-            ConvBlock(64, 32),
-            ConvBlock(32, 16),
-            ConvBlock(16, 1)
-        ])
-
-    def forward(self, input):
-        return self.model(input).squeeze()
+from GAN.us_feature_extractor import UsFeatureExtractor
 
 
 class Generator(torch.nn.Module):
@@ -97,8 +67,6 @@ class Discriminator(torch.nn.Module):
 
     def forward(self, mr, us, depth):
         us_features = self.us_feature_extractor(us)
-        if us_features.dim() == 1:
-            us_features = us_features[None, :]
         x = torch.hstack((mr, us_features, depth))
 
         return self.model(x)

@@ -23,12 +23,14 @@ def main():
     train_length = int(len(dataset) * .9)
     train, test = random_split(dataset, [train_length, len(dataset) - train_length])
     batch_size = 8
+    noise_vector_length = 256
+    depth_feature_length = dataset[0][1].shape[0]
 
     train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True)
     test_dataloader = DataLoader(test, batch_size=len(test), shuffle=False)
 
-    D = Discriminator().to(device)
-    G = Generator(512).to(device)
+    D = Discriminator(depth_feature_length).to(device)
+    G = Generator(depth_feature_length, noise_vector_length).to(device)
 
     gen_optimizer = torch.optim.Adam(G.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
     discr_optimizer = torch.optim.Adam(D.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
@@ -47,18 +49,18 @@ def main():
                                                                 total=len(train) // batch_size):
 
             D.zero_grad()
-            noise_batch = torch.randn(batch_size, 512, 1, 1, device=device)
-            fake = G(noise_batch, curr_step, curr_alpha)
-            d_fake = D(fake, curr_step, curr_alpha)
+            noise_batch = torch.randn(us_batch.shape[0], noise_vector_length, 1, 1, device=device)
+            fake = G(noise_batch, us_batch, depth_batch, curr_step, curr_alpha)
+            d_fake = D(fake, us_batch, depth_batch, curr_step, curr_alpha)
 
             real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4*2**curr_step, 4*2**curr_step))
-            d_real = D(real_input[:, None], curr_step, curr_alpha)
+            d_real = D(real_input[:, None], us_batch, depth_batch, curr_step, curr_alpha)
             d_loss = torch.mean(d_real) - torch.mean(d_fake)
             d_loss.backward()
             discr_optimizer.step()
 
             G.zero_grad()
-            g_fake = G(noise_batch, curr_step, curr_alpha)
+            g_fake = G(noise_batch, us_batch, depth_batch, curr_step, curr_alpha)
             g_loss = -torch.mean(g_fake)
             g_loss.backward()
             gen_optimizer.step()
