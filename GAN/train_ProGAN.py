@@ -12,6 +12,10 @@ def get_alpha(curr_epoch, epochs_per_step, quickness):
     return alpha if alpha <= 1 else 1
 
 
+def get_step(n_epochs, total_steps, curr_epoch):
+    return int((total_steps-1)/(n_epochs-1) * curr_epoch)
+
+
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -26,19 +30,16 @@ def main():
     D = Discriminator().to(device)
     G = Generator(512).to(device)
 
-    criterion = torch.nn.BCELoss()
-
     gen_optimizer = torch.optim.Adam(G.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
     discr_optimizer = torch.optim.Adam(D.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
 
     n_epochs = 100
-    curr_step = -1
-    curr_alpha = 1
     desired_resolution = 256
     total_steps = 1 + math.log2(desired_resolution/4)
     epochs_per_step = n_epochs // total_steps
     for i in range(n_epochs):
-        curr_step = curr_step + 1 if i % epochs_per_step == 0 else curr_step
+        # curr_step = curr_step + 1 if i % epochs_per_step == 0 else curr_step
+        curr_step = get_step(n_epochs, total_steps, i)
         curr_alpha = get_alpha(i, epochs_per_step, quickness=2)
 
         for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(train_dataloader),
@@ -46,7 +47,6 @@ def main():
                                                                 total=len(train) // batch_size):
 
             D.zero_grad()
-            # TODO implement step and alpha
             noise_batch = torch.randn(batch_size, 512, 1, 1, device=device)
             fake = G(noise_batch, curr_step, curr_alpha)
             d_fake = D(fake, curr_step, curr_alpha)
