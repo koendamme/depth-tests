@@ -1,6 +1,8 @@
 import torch
 import torch.nn.functional as F
 from GAN.us_feature_extractor import UsFeatureExtractor
+from tqdm import tqdm
+import math
 
 
 class MiniBatchStd(torch.nn.Module):
@@ -163,6 +165,64 @@ class Discriminator(torch.nn.Module):
         x = torch.concatenate([x[:, :, 0, 0], us_features, depth], dim=1)
         x = self.final_layer(x)
         return x
+
+
+class ConditionalProGAN(torch.nn.Module):
+    def __init__(self, noise_vector_length, device, depth_feature_length, desired_resolution):
+        super(ConditionalProGAN, self).__init__()
+
+        self.noise_vector_length = noise_vector_length
+        self.device = device
+        self.desired_resolution = desired_resolution
+        self.total_steps = 1 + math.log2(desired_resolution / 4)
+        self.D = Discriminator(depth_feature_length).to(device)
+        self.G = Generator(depth_feature_length, noise_vector_length).to(device)
+
+        self.G_optimizer = torch.optim.Adam(self.G.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
+        self.D_optimizer = torch.optim.Adam(self.D.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
+
+    def train_single_epoch(self, dataloader, total_epochs, current_epoch):
+        curr_step = self._get_step(total_epochs, self.total_steps, current_epoch)
+        curr_alpha = self._get_alpha(current_epoch, total_epochs // self.total_steps, quickness=2)
+
+        running_D_loss, running_G_loss = 0, 0
+        for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(dataloader),
+                                                                desc=f"Epoch {current_epoch + 1}, step {curr_step}, alpha {round(curr_alpha, 2)}: ",
+                                                                total=len(dataloader)):
+            self.D.zero_grad()
+            noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+            fake = self.G(noise_batch, us_batch, depth_batch, curr_step, curr_alpha)
+            d_fake = self.D(fake, us_batch, depth_batch, curr_step, curr_alpha)
+
+            real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** curr_step, 4 * 2 ** curr_step))
+            d_real = self.D(real_input[:, None], us_batch, depth_batch, curr_step, curr_alpha)
+            d_loss = torch.mean(d_real) - torch.mean(d_fake)
+            d_loss.backward()
+            self.D_optimizer.step()
+
+            self.G.zero_grad()
+            g_fake = self.G(noise_batch, us_batch, depth_batch, curr_step, curr_alpha)
+            g_loss = -torch.mean(g_fake)
+            g_loss.backward()
+            self.G_optimizer.step()
+
+            running_D_loss += d_loss.cpu().item()
+            running_G_loss += g_loss.cpu().item()
+
+        return running_D_loss, running_G_loss
+
+    def evaluate(self):
+        return None
+
+    @staticmethod
+    def _get_alpha(curr_epoch, epochs_per_step, quickness):
+        alpha = quickness * (curr_epoch % epochs_per_step) / epochs_per_step
+
+        return alpha if alpha <= 1 else 1
+
+    @staticmethod
+    def _get_step(n_epochs, total_steps, curr_epoch):
+        return int((total_steps - 1) / (n_epochs - 1) * curr_epoch)
 
 
 
