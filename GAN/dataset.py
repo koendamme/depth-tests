@@ -1,11 +1,12 @@
 import numpy as np
 from torch.utils.data import Dataset
 import torch
+import h5py
+from GAN.utils import min_max_scale_tensor, normalize_tensor
+import matplotlib.pyplot as plt
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
-import h5py
-from GAN.utils import min_max_scale_tensor
-import matplotlib.pyplot as plt
+
 
 
 class PreiswerkDataset(Dataset):
@@ -36,10 +37,12 @@ class PreiswerkDataset(Dataset):
             prev_idx = curr_idx
 
         self.us = torch.tensor(np.array(grouped), device=device, dtype=torch.float32)
-
-        self.mri = min_max_scale_tensor(self.mri)
-        self.us = min_max_scale_tensor(self.us)
-        self.depth = min_max_scale_tensor(self.depth)
+        self.mri = normalize_tensor(self.mri)
+        self.us = normalize_tensor(self.us)
+        self.depth = normalize_tensor(self.depth)
+        # self.mri = min_max_scale_tensor(self.mri)
+        # self.us = min_max_scale_tensor(self.us)
+        # self.depth = min_max_scale_tensor(self.depth)
 
     def __len__(self):
         return self.mri.shape[0]

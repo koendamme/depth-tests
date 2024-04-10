@@ -8,9 +8,11 @@ class ConvBlock(torch.nn.Module):
         self.conv = torch.nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=2)
         self.pool = torch.nn.AvgPool1d(kernel_size=2)
         self.dropout = torch.nn.Dropout(p=.2)
+        self.tanh = torch.nn.Tanh()
 
     def forward(self, input):
         x = self.conv(input)[:, :, :-2]    # Causal convolution
+        x = self.tanh(x)
         x = self.pool(x)
         x = self.dropout(x)
         return x

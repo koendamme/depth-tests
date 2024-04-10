@@ -17,3 +17,12 @@ def generate_image(amount, G, us, depth, output_shape, noise_vector_length, devi
 def min_max_scale_tensor(data):
     return (data - torch.min(data))/(torch.max(data) - torch.min(data))
 
+
+def normalize_tensor(data):
+    mu = torch.mean(data)
+    sigma = torch.std(data)
+
+    normalized = (data-mu)/sigma
+    print(torch.mean(normalized), torch.std(normalized))
+    return normalized
+
