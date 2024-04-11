@@ -160,7 +160,11 @@ class Discriminator(torch.nn.Module):
             ])
         ])
 
-        self.final_layer = torch.nn.Linear(in_features=self.us_feature_extractor.output_length + depth_feature_length + 512, out_features=1)
+        self.final_combination_block = torch.nn.Sequential(*[
+            torch.nn.Linear(in_features=self.us_feature_extractor.output_length + depth_feature_length + 512, out_features=1024),
+            torch.nn.ReLU(),
+            torch.nn.Linear(in_features=1024, out_features=1)
+        ])
 
     def forward(self, input, us, depth, step, alpha):
         us_features = self.us_feature_extractor(us)
@@ -181,7 +185,7 @@ class Discriminator(torch.nn.Module):
                 x = x_hat * (1 - alpha) + x * alpha
 
         x = torch.concatenate([x[:, :, 0, 0], us_features, depth], dim=1)
-        x = self.final_layer(x)
+        x = self.final_combination_block(x)
 
         return x
 
