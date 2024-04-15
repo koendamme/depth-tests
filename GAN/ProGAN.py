@@ -197,9 +197,10 @@ class ConditionalProGAN(torch.nn.Module):
         self.noise_vector_length = noise_vector_length
         self.device = device
         self.desired_resolution = desired_resolution
+        self.depth_feature_length = depth_feature_length
         self.total_steps = 1 + math.log2(desired_resolution / 4)
-        self.D = Discriminator(depth_feature_length).to(device)
-        self.G = Generator(depth_feature_length, noise_vector_length).to(device)
+        self.D = Discriminator(self.depth_feature_length).to(device)
+        self.G = Generator(self.depth_feature_length, noise_vector_length).to(device)
         self.curr_step = 0
         self.curr_alpha = 0
 
@@ -258,6 +259,16 @@ class ConditionalProGAN(torch.nn.Module):
                 axs[i // nrows, i % ncols].axis('off')
 
         fig.savefig(f"temp_val_plots/Epoch {curr_epoch+1}.png")
+
+    def compute_gradient_penalty(self, l, batch_size, alpha, beta_1, beta_2):
+        curr_res = 4 * 2 ** self.curr_step
+        random_input = torch.randn(batch_size, 1, curr_res, curr_res)
+        random_us = torch.randn(batch_size, self.D.us_feature_extractor.output_length)
+        random_depth = torch.randn(batch_size, self.depth_feature_length)
+
+        x_hat = self.D(random_input, random_us, random_depth, self.curr_step, self.curr_alpha)
+
+        gradients = torch.autograd.grad(inputs=random_input, outputs=x_hat)
         return None
 
     @staticmethod
