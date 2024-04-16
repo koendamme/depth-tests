@@ -23,5 +23,18 @@ def normalize_tensor(data):
     sigma = torch.std(data)
 
     normalized = (data-mu)/sigma
-    return normalized
+    return normalized, mu, sigma
+
+def denormalize_tensor(data, mu, sigma):
+    return data*sigma + mu
+
+def scale_generator_output(data):
+    return (data+1)/2
+
+def scale_input(data):
+    a = -1
+    b = 1
+
+    return a + (data - torch.min(data))*(b - a)/(torch.max(data) - torch.min(data))
+
 

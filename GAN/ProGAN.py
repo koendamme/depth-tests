@@ -4,6 +4,7 @@ from GAN.us_feature_extractor import UsFeatureExtractor
 from tqdm import tqdm
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class MiniBatchStd(torch.nn.Module):
@@ -44,6 +45,7 @@ class WeightedConv2d(torch.nn.Module):
     def forward(self, x):
         a = self.conv(x * self.scale)
         b = self.bias.view(1, self.bias.shape[0], 1, 1)
+        # print(self.conv.weight.data)
         return self.conv(x * self.scale) + self.bias.view(1, self.bias.shape[0], 1, 1)
 
 
@@ -109,9 +111,9 @@ class Generator(torch.nn.Module):
     def forward(self, x, us, depth, step, alpha):
         # Extract features from surrogates and concat with noise
         us_features = self.us_feature_extractor(us)[:, :, None, None]
-        m = torch.mean(us_features)
         depth = depth[:, :, None, None]
         x = torch.concatenate([us_features, depth, x], dim=1)
+
         x = self.initial_layer(x)
 
         for i in range(step + 1):
@@ -120,12 +122,15 @@ class Generator(torch.nn.Module):
 
             x = self.layers[i](x_upscaled)
 
-        x = self.togray_layers[step](x)
+        final_out = self.togray_layers[step](x)
 
         # Fade-in except on step 0
-        x = x * alpha + self.togray_layers[step-1](x_upscaled) * (1 - alpha) if step != 0 else x
-        o = torch.tanh(x)
-        return torch.tanh(x)
+        if step != 0:
+            final_upscaled = self.togray_layers[step - 1](x_upscaled)
+            o = final_out * alpha + final_upscaled * (1 - alpha)
+            return torch.tanh(o)
+
+        return torch.tanh(final_out)
 
 
 class Discriminator(torch.nn.Module):
@@ -191,7 +196,7 @@ class Discriminator(torch.nn.Module):
 
 
 class ConditionalProGAN(torch.nn.Module):
-    def __init__(self, noise_vector_length, device, depth_feature_length, desired_resolution):
+    def __init__(self, noise_vector_length, device, depth_feature_length, desired_resolution, G_lr, D_lr):
         super(ConditionalProGAN, self).__init__()
 
         self.noise_vector_length = noise_vector_length
@@ -204,8 +209,8 @@ class ConditionalProGAN(torch.nn.Module):
         self.curr_step = 0
         self.curr_alpha = 0
 
-        self.G_optimizer = torch.optim.Adam(self.G.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
-        self.D_optimizer = torch.optim.Adam(self.D.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
+        self.G_optimizer = torch.optim.Adam(self.G.parameters(), betas=(0, 0.99), lr=G_lr, eps=1e-8)
+        self.D_optimizer = torch.optim.Adam(self.D.parameters(), betas=(0, 0.99), lr=D_lr, eps=1e-8)
 
     def train_single_epoch(self, dataloader, total_epochs, current_epoch, gp_lambda):
         self.D.train()
@@ -217,23 +222,30 @@ class ConditionalProGAN(torch.nn.Module):
         for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(dataloader),
                                                                 desc=f"Epoch {current_epoch + 1}, step {self.curr_step}, alpha {round(self.curr_alpha, 2)}: ",
                                                                 total=len(dataloader)):
-            self.D.zero_grad()
+
             noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
             fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
-            d_fake = self.D(fake, us_batch, depth_batch, self.curr_step, self.curr_alpha)
-
             real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
+
+            d_fake = self.D(fake.detach(), us_batch, depth_batch, self.curr_step, self.curr_alpha)
             d_real = self.D(real_input[:, None], us_batch, depth_batch, self.curr_step, self.curr_alpha)
 
-            gp = self.compute_gradient_penalty(us_batch.shape[0])
-            d_loss = -(torch.mean(d_real) - torch.mean(d_fake)) #+ gp_lambda * gp
+            gp = self.compute_gradient_penalty(real_input[:, None], fake, us_batch, depth_batch)
+            d_loss = (
+                    -(torch.mean(d_real) - torch.mean(d_fake))
+                    + gp_lambda * gp
+                    + (0.001 * torch.mean(d_real ** 2))
+            )
 
+            self.D_optimizer.zero_grad()
             d_loss.backward()
             self.D_optimizer.step()
 
-            self.G.zero_grad()
-            g_fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
+            # g_fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
+            g_fake = self.D(fake, us_batch, depth_batch, self.curr_step, self.curr_alpha)
             g_loss = -torch.mean(g_fake)
+
+            self.G_optimizer.zero_grad()
             g_loss.backward()
             self.G_optimizer.step()
 
@@ -243,33 +255,32 @@ class ConditionalProGAN(torch.nn.Module):
         return running_D_loss, running_G_loss
 
     def evaluate(self, dataloader, curr_epoch):
-        nrows, ncols = 3, 3
-        fig, axs = plt.subplots(nrows, ncols, figsize=(10, 10))
-        fig.suptitle(f"Epoch {curr_epoch + 1}")
-        for us_batch, depth_batch, mr_batch in dataloader:
-            noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-            fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
-            curr_res = 4*2**self.curr_step
-            fake_image_batch = torch.reshape(fake, (us_batch.shape[0], curr_res, curr_res))
-            fake_image_batch_downscaled = torch.nn.functional.adaptive_avg_pool2d(fake_image_batch, (mr_batch.shape[1], mr_batch.shape[2]))
+        self.D.eval()
+        self.G.eval()
 
-            for i in range(nrows * ncols):
-                axs[i//nrows, i%ncols].imshow(fake_image_batch_downscaled[i].cpu().detach().numpy(), cmap="gray")
-                axs[i // nrows, i % ncols].axis('off')
+        us_batch, depth_batch, mr_batch = next(iter(dataloader))
+        noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+        fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
 
-        fig.savefig(f"temp_val_plots/Epoch {curr_epoch+1}.png")
+        fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
+        assert fake_upscaled.shape[-1] == self.desired_resolution
 
-    def compute_gradient_penalty(self, real, fake, batch_size):
-        curr_res = 4 * 2 ** self.curr_step
-        random_input = torch.randn(batch_size, 1, curr_res, curr_res, requires_grad=True)
-        random_us = torch.randn(batch_size, 64, 1000)
-        random_depth = torch.randn(batch_size, self.depth_feature_length)
-        x_hat = self.D(random_input, random_us, random_depth, self.curr_step, self.curr_alpha)
+        return fake_upscaled, mr_batch
 
-        gradients = torch.autograd.grad(inputs=random_input, outputs=x_hat)
-        print(gradients)
-        # norm = torch.norm(gradients, p=2)
-        return 0
+    def compute_gradient_penalty(self, real, fake, us, depth):
+        epsilon = torch.rand((real.shape[0], 1, 1, 1), device=self.device)
+        x_hat = (epsilon * real + (1-epsilon)*fake.detach()).requires_grad_(True)
+
+        score = self.D(x_hat, us, depth, self.curr_step, self.curr_alpha)
+        gradients = torch.autograd.grad(
+            inputs=x_hat,
+            outputs=score,
+            grad_outputs=torch.ones_like(score),
+            create_graph=True,
+            retain_graph=True)[0]
+
+        gradient_panelty = (torch.norm(gradients, p=2) - 1)**2
+        return gradient_panelty
 
     @staticmethod
     def _get_alpha(curr_epoch, epochs_per_step, quickness):
@@ -279,8 +290,10 @@ class ConditionalProGAN(torch.nn.Module):
 
     @staticmethod
     def _get_step(n_epochs, total_steps, curr_epoch):
-        return int((total_steps - 1) / (n_epochs - 1) * curr_epoch)
+        epochs_per_step = n_epochs//total_steps
+        step = int((total_steps-1)/(n_epochs - epochs_per_step - 1) * curr_epoch)
 
+        return min(step, total_steps-1)
 
 
 def main():
