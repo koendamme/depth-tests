@@ -207,7 +207,7 @@ class ConditionalProGAN(torch.nn.Module):
         self.G_optimizer = torch.optim.Adam(self.G.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
         self.D_optimizer = torch.optim.Adam(self.D.parameters(), betas=(0, 0.99), lr=0.001, eps=1e-8)
 
-    def train_single_epoch(self, dataloader, total_epochs, current_epoch):
+    def train_single_epoch(self, dataloader, total_epochs, current_epoch, gp_lambda):
         self.D.train()
         self.G.train()
         self.curr_step = self._get_step(total_epochs, self.total_steps, current_epoch)
@@ -224,10 +224,9 @@ class ConditionalProGAN(torch.nn.Module):
 
             real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
             d_real = self.D(real_input[:, None], us_batch, depth_batch, self.curr_step, self.curr_alpha)
-            d_loss = -(torch.mean(d_real) - torch.mean(d_fake))
 
-            if math.isnan(d_loss):
-                print("Nan found")
+            gp = self.compute_gradient_penalty(us_batch.shape[0])
+            d_loss = -(torch.mean(d_real) - torch.mean(d_fake)) #+ gp_lambda * gp
 
             d_loss.backward()
             self.D_optimizer.step()
@@ -260,16 +259,17 @@ class ConditionalProGAN(torch.nn.Module):
 
         fig.savefig(f"temp_val_plots/Epoch {curr_epoch+1}.png")
 
-    def compute_gradient_penalty(self, l, batch_size, alpha, beta_1, beta_2):
+    def compute_gradient_penalty(self, real, fake, batch_size):
         curr_res = 4 * 2 ** self.curr_step
-        random_input = torch.randn(batch_size, 1, curr_res, curr_res)
-        random_us = torch.randn(batch_size, self.D.us_feature_extractor.output_length)
+        random_input = torch.randn(batch_size, 1, curr_res, curr_res, requires_grad=True)
+        random_us = torch.randn(batch_size, 64, 1000)
         random_depth = torch.randn(batch_size, self.depth_feature_length)
-
         x_hat = self.D(random_input, random_us, random_depth, self.curr_step, self.curr_alpha)
 
         gradients = torch.autograd.grad(inputs=random_input, outputs=x_hat)
-        return None
+        print(gradients)
+        # norm = torch.norm(gradients, p=2)
+        return 0
 
     @staticmethod
     def _get_alpha(curr_epoch, epochs_per_step, quickness):
@@ -284,28 +284,15 @@ class ConditionalProGAN(torch.nn.Module):
 
 
 def main():
-    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # data = PreiswerkDataset("B", device)
     # dataloader = DataLoader(data, batch_size=8, shuffle=True)
     # batch = next(iter(dataloader))
 
-    D = Discriminator()
-    G = Generator(512)
+    model = ConditionalProGAN(512, device, 80, 256)
 
-    input = torch.randn((4, 1, 4, 4))
-    print(input.shape)
-
-    for step in range(7):
-        print("-----")
-        print(f"step {step}")
-        # res = 2**(step+3)
-        input = torch.randn(4, 512, 1, 1)
-
-        o = G(input, step, .5)
-        print("Generator output: ", o.shape)
-
-        d_o = D(o, step, .5)
-        print("Discriminator output", d_o.shape)
+    gp = model.compute_gradient_penalty(8)
+    print(gp)
 
 
 if __name__ == '__main__':

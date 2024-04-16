@@ -7,16 +7,6 @@ from tqdm import tqdm
 import math
 
 
-def get_alpha(curr_epoch, epochs_per_step, quickness):
-    alpha = quickness*(curr_epoch % epochs_per_step)/epochs_per_step
-
-    return alpha if alpha <= 1 else 1
-
-
-def get_step(n_epochs, total_steps, curr_epoch):
-    return int((total_steps-1)/(n_epochs-1) * curr_epoch)
-
-
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.autograd.set_detect_anomaly(True)
@@ -34,7 +24,7 @@ def main():
     cProGAN = ConditionalProGAN(noise_vector_length, device, dataset[0][1].shape[0], desired_resolution)
     d_loss_line, g_loss_line = [], []
     for i in range(n_epochs):
-        D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, n_epochs, i)
+        D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, n_epochs, i, gp_lambda=10)
         # print(D_loss, G_loss)
         d_loss_line.append(D_loss)
         g_loss_line.append(G_loss)

@@ -23,6 +23,5 @@ def normalize_tensor(data):
     sigma = torch.std(data)
 
     normalized = (data-mu)/sigma
-    print(torch.mean(normalized), torch.std(normalized))
     return normalized
 
