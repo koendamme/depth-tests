@@ -63,18 +63,5 @@ class VeenstraDataset(Dataset):
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # with open(os.path.join("..", "Preiswerk", "datasets", "A", "config.xml"), 'r') as f:
-    #     config = f.read()
-    #
-    # config = BeautifulSoup(config, "xml")
-    # roi = config.find("parameters").find("parameter", {"name": "us_roi"})
-    # print(type(roi["start"]))
-    #
-    data = PreiswerkDataset("H", device)
-    print(data.us.shape)
-    #
-    # with h5py.File(os.path.join("..", "Preiswerk", "datasets", "A", "1", "mr2us.h5"), "r") as f:
-    #     mr2us = np.array(f['mr2us']['plane1']).squeeze()
-    #     print(mr2us[1] - mr2us[0])
-    #     print(mr2us.shape)
+
 

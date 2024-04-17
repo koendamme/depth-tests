@@ -3,10 +3,10 @@ import os
 import cv2
 import numpy as np
 
-dir = "17-04-1124"
+dir = "17-04-1427"
 
 writer = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-video = cv2.VideoWriter("patient A.mp4", writer, 3, (512, 512))
+video = cv2.VideoWriter("patient H.mp4", writer, 3, (512, 512))
 
 paths = glob.glob(os.path.join(dir, "*.png"))
 # print(int(paths[0].split("_")[1].split(".")[0]))

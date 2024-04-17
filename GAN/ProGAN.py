@@ -5,6 +5,7 @@ from tqdm import tqdm
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from GAN.metrics import normalized_mean_squared_error
 
 
 class MiniBatchStd(torch.nn.Module):
@@ -248,18 +249,20 @@ class ConditionalProGAN(torch.nn.Module):
 
         return running_D_loss, running_G_loss
 
-    def evaluate(self, dataloader, curr_epoch):
+    def evaluate(self, dataloader):
         self.D.eval()
         self.G.eval()
 
         us_batch, mr_batch = next(iter(dataloader))
         noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
         fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
+        mr_downscaled = torch.nn.functional.adaptive_avg_pool2d(mr_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
+        nmse = normalized_mean_squared_error(fake, mr_downscaled)
 
         fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
         assert fake_upscaled.shape[-1] == self.desired_resolution
 
-        return fake_upscaled, mr_batch
+        return fake_upscaled, mr_batch, nmse
 
     def compute_gradient_penalty(self, real, fake, us):
         epsilon = torch.rand((real.shape[0], 1, 1, 1), device=self.device)

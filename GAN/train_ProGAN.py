@@ -54,7 +54,7 @@ def main():
         D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, config["n_epochs"], i, gp_lambda=config["GP_lambda"])
         end_time = time.time()
 
-        test_imgs, real_imgs = cProGAN.evaluate(test_dataloader, i)
+        test_imgs, real_imgs, nmse = cProGAN.evaluate(test_dataloader)
 
         wandb.log({
             "D_loss": D_loss,
@@ -62,7 +62,8 @@ def main():
             "Test_images": [wandb.Image(scale_generator_output(test_imgs[i]), caption=f"Test Image {i}") for i in range(test_imgs.shape[0])],
             "Real_images": [wandb.Image(scale_generator_output(real_imgs[i]), caption=f"Real Image {i}") for i in range(real_imgs.shape[0])],
             "Epoch": i,
-            "Training_epoch_time": end_time - start_time
+            "Training_epoch_time": end_time - start_time,
+            "Test_NMSE": nmse.mean()
         })
 
         save_image(scale_generator_output(test_imgs[0]), os.path.join("train_video", datestring, f"Epoch{i}_0_fake.png"))
