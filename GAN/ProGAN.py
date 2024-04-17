@@ -272,15 +272,17 @@ class ConditionalProGAN(torch.nn.Module):
         x_hat = (epsilon * real + (1-epsilon)*fake.detach()).requires_grad_(True)
 
         score = self.D(x_hat, us, depth, self.curr_step, self.curr_alpha)
-        gradients = torch.autograd.grad(
+        gradient = torch.autograd.grad(
             inputs=x_hat,
             outputs=score,
             grad_outputs=torch.ones_like(score),
             create_graph=True,
-            retain_graph=True)[0]
-
-        gradient_panelty = (torch.norm(gradients, p=2) - 1)**2
-        return gradient_panelty
+            retain_graph=True
+        )[0]
+        gradient = gradient.view(gradient.shape[0], -1)
+        gradient_norm = gradient.norm(2, dim=1)
+        gradient_penalty = torch.mean((gradient_norm-1)**2)
+        return gradient_penalty
 
     @staticmethod
     def _get_alpha(curr_epoch, epochs_per_step, quickness):

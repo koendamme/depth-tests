@@ -38,7 +38,7 @@ class PreiswerkDataset(Dataset):
 
         self.us = torch.tensor(np.array(grouped), device=device, dtype=torch.float32)
         # self.mri, self.mri_mu, self.mri_sigma = normalize_tensor(self.mri)
-        self.mri = scale_input(self.mri)
+        self.mri = scale_input(self.mri, -1, 1)
         self.us, _, _ = normalize_tensor(self.us)
         self.depth, _, _ = normalize_tensor(self.depth)
         # self.mri = min_max_scale_tensor(self.mri)

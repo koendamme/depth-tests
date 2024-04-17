@@ -31,10 +31,7 @@ def denormalize_tensor(data, mu, sigma):
 def scale_generator_output(data):
     return (data+1)/2
 
-def scale_input(data):
-    a = -1
-    b = 1
-
-    return a + (data - torch.min(data))*(b - a)/(torch.max(data) - torch.min(data))
+def scale_input(data, new_min, new_max):
+    return new_min + (data - torch.min(data))*(new_max - new_min)/(torch.max(data) - torch.min(data))
 
 
