@@ -71,11 +71,11 @@ class ConvBlock(torch.nn.Module):
 
 
 class Generator(torch.nn.Module):
-    def __init__(self, depth_feature_length, noise_length):
+    def __init__(self, noise_length):
         super(Generator, self).__init__()
         self.us_feature_extractor = UsFeatureExtractor(1000)
         self.initial_layer = torch.nn.Sequential(*[
-            WeightedConv2d(in_channels=self.us_feature_extractor.output_length + depth_feature_length + noise_length, out_channels=512, kernel_size=1),
+            WeightedConv2d(in_channels=self.us_feature_extractor.output_length + noise_length, out_channels=512, kernel_size=1),
             torch.nn.LeakyReLU(0.2),
             PixelWiseNormalization()
         ])
@@ -108,11 +108,10 @@ class Generator(torch.nn.Module):
             ConvBlock(64, 16, apply_pixelnorm=True)
         ])
 
-    def forward(self, x, us, depth, step, alpha):
+    def forward(self, x, us, step, alpha):
         # Extract features from surrogates and concat with noise
         us_features = self.us_feature_extractor(us)[:, :, None, None]
-        depth = depth[:, :, None, None]
-        x = torch.concatenate([us_features, depth, x], dim=1)
+        x = torch.concatenate([us_features, x], dim=1)
 
         x = self.initial_layer(x)
 
@@ -134,7 +133,7 @@ class Generator(torch.nn.Module):
 
 
 class Discriminator(torch.nn.Module):
-    def __init__(self, depth_feature_length):
+    def __init__(self):
         super(Discriminator, self).__init__()
         self.us_feature_extractor = UsFeatureExtractor(1000)
 
@@ -166,12 +165,12 @@ class Discriminator(torch.nn.Module):
         ])
 
         self.final_combination_block = torch.nn.Sequential(*[
-            torch.nn.Linear(in_features=self.us_feature_extractor.output_length + depth_feature_length + 512, out_features=1024),
+            torch.nn.Linear(in_features=self.us_feature_extractor.output_length + 512, out_features=1024),
             torch.nn.ReLU(),
             torch.nn.Linear(in_features=1024, out_features=1)
         ])
 
-    def forward(self, input, us, depth, step, alpha):
+    def forward(self, input, us, step, alpha):
         us_features = self.us_feature_extractor(us)
 
         x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](input)
@@ -189,23 +188,22 @@ class Discriminator(torch.nn.Module):
                 x_hat = self.fromgray_layers[len(self.fromgray_layers) - step](x_hat)
                 x = x_hat * (1 - alpha) + x * alpha
 
-        x = torch.concatenate([x[:, :, 0, 0], us_features, depth], dim=1)
+        x = torch.concatenate([x[:, :, 0, 0], us_features], dim=1)
         x = self.final_combination_block(x)
 
         return x
 
 
 class ConditionalProGAN(torch.nn.Module):
-    def __init__(self, noise_vector_length, device, depth_feature_length, desired_resolution, G_lr, D_lr):
+    def __init__(self, noise_vector_length, device, desired_resolution, G_lr, D_lr):
         super(ConditionalProGAN, self).__init__()
 
         self.noise_vector_length = noise_vector_length
         self.device = device
         self.desired_resolution = desired_resolution
-        self.depth_feature_length = depth_feature_length
         self.total_steps = 1 + math.log2(desired_resolution / 4)
-        self.D = Discriminator(self.depth_feature_length).to(device)
-        self.G = Generator(self.depth_feature_length, noise_vector_length).to(device)
+        self.D = Discriminator().to(device)
+        self.G = Generator(noise_vector_length).to(device)
         self.curr_step = 0
         self.curr_alpha = 0
 
@@ -219,18 +217,18 @@ class ConditionalProGAN(torch.nn.Module):
         self.curr_alpha = self._get_alpha(current_epoch, total_epochs // self.total_steps, quickness=2)
 
         running_D_loss, running_G_loss = 0, 0
-        for i_batch, (us_batch, depth_batch, mri_batch) in tqdm(enumerate(dataloader),
+        for i_batch, (us_batch, _, mri_batch) in tqdm(enumerate(dataloader),
                                                                 desc=f"Epoch {current_epoch + 1}, step {self.curr_step}, alpha {round(self.curr_alpha, 2)}: ",
                                                                 total=len(dataloader)):
 
             noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-            fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
+            fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
             real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
 
-            d_fake = self.D(fake.detach(), us_batch, depth_batch, self.curr_step, self.curr_alpha)
-            d_real = self.D(real_input[:, None], us_batch, depth_batch, self.curr_step, self.curr_alpha)
+            d_fake = self.D(fake.detach(), us_batch, self.curr_step, self.curr_alpha)
+            d_real = self.D(real_input[:, None], us_batch, self.curr_step, self.curr_alpha)
 
-            gp = self.compute_gradient_penalty(real_input[:, None], fake, us_batch, depth_batch)
+            gp = self.compute_gradient_penalty(real_input[:, None], fake, us_batch)
             d_loss = (
                     -(torch.mean(d_real) - torch.mean(d_fake))
                     + gp_lambda * gp
@@ -241,8 +239,7 @@ class ConditionalProGAN(torch.nn.Module):
             d_loss.backward()
             self.D_optimizer.step()
 
-            # g_fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
-            g_fake = self.D(fake, us_batch, depth_batch, self.curr_step, self.curr_alpha)
+            g_fake = self.D(fake, us_batch, self.curr_step, self.curr_alpha)
             g_loss = -torch.mean(g_fake)
 
             self.G_optimizer.zero_grad()
@@ -258,20 +255,20 @@ class ConditionalProGAN(torch.nn.Module):
         self.D.eval()
         self.G.eval()
 
-        us_batch, depth_batch, mr_batch = next(iter(dataloader))
+        us_batch, _, mr_batch = next(iter(dataloader))
         noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-        fake = self.G(noise_batch, us_batch, depth_batch, self.curr_step, self.curr_alpha)
+        fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
 
         fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
         assert fake_upscaled.shape[-1] == self.desired_resolution
 
         return fake_upscaled, mr_batch
 
-    def compute_gradient_penalty(self, real, fake, us, depth):
+    def compute_gradient_penalty(self, real, fake, us):
         epsilon = torch.rand((real.shape[0], 1, 1, 1), device=self.device)
         x_hat = (epsilon * real + (1-epsilon)*fake.detach()).requires_grad_(True)
 
-        score = self.D(x_hat, us, depth, self.curr_step, self.curr_alpha)
+        score = self.D(x_hat, us, self.curr_step, self.curr_alpha)
         gradient = torch.autograd.grad(
             inputs=x_hat,
             outputs=score,

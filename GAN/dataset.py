@@ -55,8 +55,9 @@ class PreiswerkDataset(Dataset):
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    data = PreiswerkDataset("B", device)
-    img = data.mri[0]
-    print(torch.min(img), torch.max(img))
+    data = PreiswerkDataset("H", device)
+    print(data.us.shape)
+    # img = data.mri[0]
+    # print(torch.min(img), torch.max(img))
 
 
