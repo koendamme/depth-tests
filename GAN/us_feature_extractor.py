@@ -19,12 +19,11 @@ class ConvBlock(torch.nn.Module):
 
 
 class UsFeatureExtractor(torch.nn.Module):
-    def __init__(self, input_length):
+    def __init__(self, input_length, input_channels):
         super(UsFeatureExtractor, self).__init__()
-
         self.output_length = input_length//2//2//2//2
         self.model = torch.nn.Sequential(*[
-            ConvBlock(64, 64),
+            ConvBlock(input_channels, 64),
             ConvBlock(64, 32),
             ConvBlock(32, 16),
             ConvBlock(16, 1)

@@ -41,7 +41,9 @@ def main():
         device=device,
         desired_resolution=config["desired_resolution"],
         G_lr=config["G_learning_rate"],
-        D_lr=config["D_learning_rate"]
+        D_lr=config["D_learning_rate"],
+        us_signal_length=dataset.us.shape[2],
+        us_channels=dataset.us.shape[1]
     )
 
     datestring = datetime.now().strftime("%d-%m-%H%M")
