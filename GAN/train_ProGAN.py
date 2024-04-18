@@ -1,7 +1,7 @@
 import torch
 from GAN.dataset import PreiswerkDataset
 from GAN.utils import denormalize_tensor, scale_generator_output
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
 import matplotlib.pyplot as plt
 from ProGAN import Generator, Discriminator, ConditionalProGAN
 from tqdm import tqdm
@@ -29,12 +29,15 @@ def main():
     )
 
     wandb.init(project="Preiswerk-cProGAN", config=config)
+    print(wandb.run.name)
 
     dataset = PreiswerkDataset(config["patient"], device=device)
     train_length = int(len(dataset) * .9)
-    train, test = random_split(dataset, [train_length, len(dataset) - train_length])
-    train_dataloader = DataLoader(train, batch_size=config["batch_size"], shuffle=True)
-    test_dataloader = DataLoader(test, batch_size=len(test), shuffle=False)
+
+    train_subset = Subset(dataset, torch.arange(0, train_length))
+    test_subset = Subset(dataset, torch.arange(train_length, len(dataset)))
+    train_dataloader = DataLoader(train_subset, batch_size=config["batch_size"], shuffle=True)
+    test_dataloader = DataLoader(test_subset, batch_size=len(test_subset), shuffle=False)
 
     cProGAN = ConditionalProGAN(
         noise_vector_length=config["noise_vector_length"],
@@ -70,6 +73,9 @@ def main():
         save_image(scale_generator_output(real_imgs[0]), os.path.join("train_video", datestring, f"Epoch{i}_0_real.png"))
         save_image(scale_generator_output(test_imgs[1]), os.path.join("train_video", datestring, f"Epoch{i}_1_fake.png"))
         save_image(scale_generator_output(real_imgs[1]), os.path.join("train_video", datestring, f"Epoch{i}_1_real.png"))
+
+        if i in [949, 974, 999]:
+            torch.save(cProGAN.state_dict(), f"models/{wandb.run.name}_epoch{i}.pt")
 
 
 if __name__ == '__main__':

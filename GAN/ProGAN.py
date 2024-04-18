@@ -301,10 +301,10 @@ def main():
     # dataloader = DataLoader(data, batch_size=8, shuffle=True)
     # batch = next(iter(dataloader))
 
-    model = ConditionalProGAN(512, device, 80, 256)
-
-    gp = model.compute_gradient_penalty(8)
-    print(gp)
+    # model = ConditionalProGAN(512, device, 256, 0.001, 0.001, 1000, 64)
+    #
+    # model.load_state_dict(torch.load("model.pt"))
+    # torch.save(model.state_dict(), "model.pt")
 
 
 if __name__ == '__main__':

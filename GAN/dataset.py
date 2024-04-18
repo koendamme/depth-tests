@@ -63,5 +63,8 @@ class VeenstraDataset(Dataset):
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    dcm = pydicom.dcmread("../A/DICOM/I8")
+    print(dcm[0x008, 0x474])
+
 
 
