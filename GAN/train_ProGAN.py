@@ -75,7 +75,9 @@ def main():
         save_image(scale_generator_output(real_imgs[1]), os.path.join("train_video", datestring, f"Epoch{i}_1_real.png"))
 
         if i in [949, 974, 999]:
-            torch.save(cProGAN.state_dict(), f"models/{wandb.run.name}_epoch{i}.pt")
+            file_path = f"models/{wandb.run.name}_epoch{i}.pt"
+            torch.save(cProGAN.state_dict(), file_path)
+            wandb.save(file_path)
 
 
 if __name__ == '__main__':
