@@ -24,6 +24,7 @@ def main():
         G_learning_rate=0.001,
         D_learning_rate=0.001,
         GP_lambda=10,
+        n_critic=2,
         patient="H",
         surrogates="US"
     )
@@ -46,7 +47,8 @@ def main():
         G_lr=config["G_learning_rate"],
         D_lr=config["D_learning_rate"],
         us_signal_length=dataset.us.shape[2],
-        us_channels=dataset.us.shape[1]
+        us_channels=dataset.us.shape[1],
+        n_critic=config["n_critic"]
     )
 
     datestring = datetime.now().strftime("%d-%m-%H%M")

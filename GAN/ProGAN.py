@@ -193,7 +193,7 @@ class Discriminator(torch.nn.Module):
 
 
 class ConditionalProGAN(torch.nn.Module):
-    def __init__(self, noise_vector_length, device, desired_resolution, G_lr, D_lr, us_signal_length, us_channels):
+    def __init__(self, noise_vector_length, device, desired_resolution, G_lr, D_lr, us_signal_length, us_channels, n_critic):
         super(ConditionalProGAN, self).__init__()
 
         self.noise_vector_length = noise_vector_length
@@ -202,6 +202,7 @@ class ConditionalProGAN(torch.nn.Module):
         self.total_steps = 1 + math.log2(desired_resolution / 4)
         self.D = Discriminator(us_signal_length, us_channels).to(device)
         self.G = Generator(noise_vector_length, us_signal_length, us_channels).to(device)
+        self.n_critic = n_critic
         self.curr_step = 0
         self.curr_alpha = 0
 
@@ -219,25 +220,28 @@ class ConditionalProGAN(torch.nn.Module):
                                                                 desc=f"Epoch {current_epoch + 1}, step {self.curr_step}, alpha {round(self.curr_alpha, 2)}: ",
                                                                 total=len(dataloader)):
 
+            for t in range(self.n_critic):
+                noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+                fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
+                real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
+
+                d_fake = self.D(fake.detach(), us_batch, self.curr_step, self.curr_alpha)
+                d_real = self.D(real_input[:, None], us_batch, self.curr_step, self.curr_alpha)
+
+                gp = self.compute_gradient_penalty(real_input[:, None], fake, us_batch)
+                d_loss = (
+                        -(torch.mean(d_real) - torch.mean(d_fake))
+                        + gp_lambda * gp
+                        + (0.001 * torch.mean(d_real ** 2))
+                )
+
+                self.D_optimizer.zero_grad()
+                d_loss.backward()
+                self.D_optimizer.step()
+
             noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-            fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
-            real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
-
-            d_fake = self.D(fake.detach(), us_batch, self.curr_step, self.curr_alpha)
-            d_real = self.D(real_input[:, None], us_batch, self.curr_step, self.curr_alpha)
-
-            gp = self.compute_gradient_penalty(real_input[:, None], fake, us_batch)
-            d_loss = (
-                    -(torch.mean(d_real) - torch.mean(d_fake))
-                    + gp_lambda * gp
-                    + (0.001 * torch.mean(d_real ** 2))
-            )
-
-            self.D_optimizer.zero_grad()
-            d_loss.backward()
-            self.D_optimizer.step()
-
-            g_fake = self.D(fake, us_batch, self.curr_step, self.curr_alpha)
+            fake_mr = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
+            g_fake = self.D(fake_mr, us_batch, self.curr_step, self.curr_alpha)
             g_loss = -torch.mean(g_fake)
 
             self.G_optimizer.zero_grad()
