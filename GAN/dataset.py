@@ -2,14 +2,13 @@ import numpy as np
 from torch.utils.data import Dataset
 import torch
 import h5py
-from GAN.utils import min_max_scale_tensor, normalize_tensor, scale_input
+from GAN.utils import min_max_scale_tensor, normalize_tensor, scale_input, scale_generator_output
 import matplotlib.pyplot as plt
+import glob
 from bs4 import BeautifulSoup
-import os
 import pydicom
-from pydicom.tag import BaseTag
-from pydicom.data import get_testdata_files
-from pydicom.fileset import FileSet
+import os
+import cv2
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
@@ -47,7 +46,6 @@ class PreiswerkDataset(Dataset):
         self.mri = scale_input(self.mri, -1, 1)
         self.us, _, _ = normalize_tensor(self.us)
 
-
     def __len__(self):
         return self.mri.shape[0]
 
@@ -57,14 +55,30 @@ class PreiswerkDataset(Dataset):
 
 class VeenstraDataset(Dataset):
     def __init__(self):
-        path = os.path.join("..", "A")
+        self.paths = glob.glob("../Veenstra/A/DICOM/I*")
+        self.paths.sort(key=lambda x: int(x.split("/I")[1]))
+
+    def __getitem__(self, idx):
+        dcm = pydicom.dcmread(self.paths[idx])
+        try:
+            img = dcm.pixel_array
+            min, max = np.min(img), np.max(img)
+            img = (img - min) / (max - min)
+            return img
+        except:
+            return None
 
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    dcm = pydicom.dcmread("../A/DICOM/I8")
-    print(dcm[0x008, 0x474])
+    dataset = PreiswerkDataset("A", device)
 
+    for i in range(dataset.mri.shape[0]):
+        img = dataset.mri[i]
+        img = scale_generator_output(img)
+        print(img.shape)
+        cv2.imshow("frame", img.cpu().numpy())
+        cv2.waitKey(300)
 
-
+    cv2.destroyAllWindows()
