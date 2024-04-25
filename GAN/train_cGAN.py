@@ -1,10 +1,7 @@
-# from .GAN import Discriminator, Generator
-from GAN.GAN_models import Discriminator, Generator
+from GAN.models.cGAN import Discriminator, Generator
 from GAN.dataset import PreiswerkDataset
 import torch
-from GAN.utils import weights_init, generate_image
 from torch.utils.data import DataLoader, random_split
-from torchvision.utils import save_image
 from tqdm import tqdm
 import wandb
 

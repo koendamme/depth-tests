@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-from GAN.us_feature_extractor import UsFeatureExtractor
 from tqdm import tqdm
 import math
 import matplotlib.pyplot as plt
@@ -69,15 +68,8 @@ class ConvBlock(torch.nn.Module):
 
 
 class Generator(torch.nn.Module):
-    def __init__(self, noise_length, us_signal_length, us_channels):
+    def __init__(self, noise_length):
         super(Generator, self).__init__()
-        self.us_feature_extractor = UsFeatureExtractor(us_signal_length, us_channels)
-        self.initial_layer = torch.nn.Sequential(*[
-            WeightedConv2d(in_channels=self.us_feature_extractor.output_length + noise_length, out_channels=512, kernel_size=1),
-            torch.nn.LeakyReLU(0.2),
-            PixelWiseNormalization()
-        ])
-
         self.togray_layers = torch.nn.ModuleList([
             WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
             WeightedConv2d(in_channels=512, out_channels=1, kernel_size=1),
@@ -106,13 +98,7 @@ class Generator(torch.nn.Module):
             ConvBlock(64, 16, apply_pixelnorm=True)
         ])
 
-    def forward(self, x, us, step, alpha):
-        # Extract features from surrogates and concat with noise
-        us_features = self.us_feature_extractor(us)[:, :, None, None]
-        x = torch.concatenate([us_features, x], dim=1)
-
-        x = self.initial_layer(x)
-
+    def forward(self, x, step, alpha):
         for i in range(step + 1):
             # Don't upsample the first layer
             x_upscaled = F.interpolate(x, scale_factor=2, mode='nearest') if i != 0 else x
@@ -131,9 +117,8 @@ class Generator(torch.nn.Module):
 
 
 class Discriminator(torch.nn.Module):
-    def __init__(self, us_signal_length, us_channels):
+    def __init__(self,):
         super(Discriminator, self).__init__()
-        self.us_feature_extractor = UsFeatureExtractor(us_signal_length, us_channels)
 
         self.fromgray_layers = torch.nn.ModuleList([
             WeightedConv2d(in_channels=1, out_channels=16, kernel_size=1),
@@ -157,20 +142,11 @@ class Discriminator(torch.nn.Module):
                 MiniBatchStd(),
                 WeightedConv2d(in_channels=513, out_channels=512, kernel_size=3, padding=1),
                 torch.nn.LeakyReLU(0.2),
-                WeightedConv2d(in_channels=512, out_channels=512, kernel_size=4, padding=0),
+                WeightedConv2d(in_channels=512, out_channels=1, kernel_size=4, padding=0),
                 torch.nn.LeakyReLU(0.2)
             ])
         ])
-
-        self.final_combination_block = torch.nn.Sequential(*[
-            torch.nn.Linear(in_features=self.us_feature_extractor.output_length + 512, out_features=1024),
-            torch.nn.ReLU(),
-            torch.nn.Linear(in_features=1024, out_features=1)
-        ])
-
-    def forward(self, input, us, step, alpha):
-        us_features = self.us_feature_extractor(us)
-
+    def forward(self, input, step, alpha):
         x = self.fromgray_layers[len(self.fromgray_layers) - step - 1](input)
         x = self.act(x)
 
@@ -186,22 +162,19 @@ class Discriminator(torch.nn.Module):
                 x_hat = self.fromgray_layers[len(self.fromgray_layers) - step](x_hat)
                 x = x_hat * (1 - alpha) + x * alpha
 
-        x = torch.concatenate([x[:, :, 0, 0], us_features], dim=1)
-        x = self.final_combination_block(x)
-
         return x
 
 
-class ConditionalProGAN(torch.nn.Module):
-    def __init__(self, noise_vector_length, device, desired_resolution, G_lr, D_lr, us_signal_length, us_channels, n_critic):
-        super(ConditionalProGAN, self).__init__()
+class VanillaProGAN(torch.nn.Module):
+    def __init__(self, noise_vector_length, device, desired_resolution, G_lr, D_lr, n_critic):
+        super(VanillaProGAN, self).__init__()
 
         self.noise_vector_length = noise_vector_length
         self.device = device
         self.desired_resolution = desired_resolution
         self.total_steps = 1 + math.log2(desired_resolution / 4)
-        self.D = Discriminator(us_signal_length, us_channels).to(device)
-        self.G = Generator(noise_vector_length, us_signal_length, us_channels).to(device)
+        self.D = Discriminator().to(device)
+        self.G = Generator(noise_vector_length).to(device)
         self.n_critic = n_critic
         self.curr_step = 0
         self.curr_alpha = 0
@@ -216,19 +189,21 @@ class ConditionalProGAN(torch.nn.Module):
         self.curr_alpha = self._get_alpha(current_epoch, total_epochs // self.total_steps, quickness=2)
 
         running_D_loss, running_G_loss = 0, 0
-        for i_batch, (us_batch, mri_batch) in tqdm(enumerate(dataloader),
+        for i_batch, mri_batch in tqdm(enumerate(dataloader),
                                                                 desc=f"Epoch {current_epoch + 1}, step {self.curr_step}, alpha {round(self.curr_alpha, 2)}: ",
                                                                 total=len(dataloader)):
 
+            mri_batch = mri_batch.to(self.device)
+
             for t in range(self.n_critic):
-                noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-                fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
+                noise_batch = torch.randn(mri_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+                fake = self.G(noise_batch, self.curr_step, self.curr_alpha)
                 real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
 
-                d_fake = self.D(fake.detach(), us_batch, self.curr_step, self.curr_alpha)
-                d_real = self.D(real_input[:, None], us_batch, self.curr_step, self.curr_alpha)
+                d_fake = self.D(fake.detach(), self.curr_step, self.curr_alpha)
+                d_real = self.D(real_input[:], self.curr_step, self.curr_alpha)
 
-                gp = self.compute_gradient_penalty(real_input[:, None], fake, us_batch)
+                gp = self.compute_gradient_penalty(real_input[:], fake)
                 d_loss = (
                         -(torch.mean(d_real) - torch.mean(d_fake))
                         + gp_lambda * gp
@@ -239,9 +214,9 @@ class ConditionalProGAN(torch.nn.Module):
                 d_loss.backward()
                 self.D_optimizer.step()
 
-            noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-            fake_mr = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
-            g_fake = self.D(fake_mr, us_batch, self.curr_step, self.curr_alpha)
+            noise_batch = torch.randn(mri_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+            fake_mr = self.G(noise_batch, self.curr_step, self.curr_alpha)
+            g_fake = self.D(fake_mr, self.curr_step, self.curr_alpha)
             g_loss = -torch.mean(g_fake)
 
             self.G_optimizer.zero_grad()
@@ -257,22 +232,25 @@ class ConditionalProGAN(torch.nn.Module):
         self.D.eval()
         self.G.eval()
 
-        us_batch, mr_batch = next(iter(dataloader))
-        noise_batch = torch.randn(us_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-        fake = self.G(noise_batch, us_batch, self.curr_step, self.curr_alpha)
-        mr_downscaled = torch.nn.functional.adaptive_avg_pool2d(mr_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
-        nmse = normalized_mean_squared_error(fake, mr_downscaled)
+        mr_batch = next(iter(dataloader))
+        mr_batch = mr_batch.to(self.device)
+        noise_batch = torch.randn(mr_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+        fake = self.G(noise_batch, self.curr_step, self.curr_alpha)
+        # mr_downscaled = torch.nn.functional.adaptive_avg_pool2d(mr_batch, (4 * 2 ** self.curr_step, 4 * 2 ** self.curr_step))
+        # nmse = normalized_mean_squared_error(fake, mr_downscaled)
 
         fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
+        nmse = normalized_mean_squared_error(fake_upscaled, mr_batch)
+
         assert fake_upscaled.shape[-1] == self.desired_resolution
 
         return fake_upscaled, mr_batch, nmse
 
-    def compute_gradient_penalty(self, real, fake, us):
+    def compute_gradient_penalty(self, real, fake):
         epsilon = torch.rand((real.shape[0], 1, 1, 1), device=self.device)
         x_hat = (epsilon * real + (1-epsilon)*fake.detach()).requires_grad_(True)
 
-        score = self.D(x_hat, us, self.curr_step, self.curr_alpha)
+        score = self.D(x_hat, self.curr_step, self.curr_alpha)
         gradient = torch.autograd.grad(
             inputs=x_hat,
             outputs=score,

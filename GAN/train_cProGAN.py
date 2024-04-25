@@ -1,8 +1,9 @@
 import torch
-from GAN.dataset import VeenstraDataset
+from GAN.dataset import PreiswerkDataset
 from GAN.utils import denormalize_tensor, scale_generator_output
 from torch.utils.data import DataLoader, Subset
-from GAN.models.ProGAN import VanillaProGAN
+import matplotlib.pyplot as plt
+from cProGAN import Generator, Discriminator, ConditionalProGAN
 from tqdm import tqdm
 from datetime import datetime
 import time
@@ -17,20 +18,20 @@ def main():
 
     config = dict(
         batch_size=16,
-        n_epochs=100,
+        n_epochs=600,
         desired_resolution=256,
-        noise_vector_length=512,
-        G_learning_rate=0.001,
-        D_learning_rate=0.001,
+        noise_vector_length=128,
+        G_learning_rate=0.0001,
+        D_learning_rate=0.0001,
         GP_lambda=10,
         n_critic=2,
         patient="A",
         surrogates="US"
     )
 
-    wandb.init(project="Veenstra-ProGAN", config=config)
+    wandb.init(project="Preiswerk-cProGAN", config=config)
 
-    dataset = VeenstraDataset()
+    dataset = PreiswerkDataset(config["patient"], device=device, global_scaling=False)
     train_length = int(len(dataset) * .9)
 
     train_subset = Subset(dataset, torch.arange(0, train_length))
@@ -38,12 +39,14 @@ def main():
     train_dataloader = DataLoader(train_subset, batch_size=config["batch_size"], shuffle=True)
     test_dataloader = DataLoader(test_subset, batch_size=len(test_subset), shuffle=False)
 
-    model = VanillaProGAN(
+    cProGAN = ConditionalProGAN(
         noise_vector_length=config["noise_vector_length"],
         device=device,
         desired_resolution=config["desired_resolution"],
         G_lr=config["G_learning_rate"],
         D_lr=config["D_learning_rate"],
+        us_signal_length=dataset.us.shape[2],
+        us_channels=dataset.us.shape[1],
         n_critic=config["n_critic"]
     )
 
@@ -52,10 +55,10 @@ def main():
 
     for i in range(config["n_epochs"]):
         start_time = time.time()
-        D_loss, G_loss = model.train_single_epoch(train_dataloader, config["n_epochs"], i, gp_lambda=config["GP_lambda"])
+        D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, config["n_epochs"], i, gp_lambda=config["GP_lambda"])
         end_time = time.time()
 
-        test_imgs, real_imgs, nmse = model.evaluate(test_dataloader)
+        test_imgs, real_imgs, nmse = cProGAN.evaluate(test_dataloader)
 
         wandb.log({
             "D_loss": D_loss,
@@ -74,7 +77,7 @@ def main():
 
         if i in [574, 581, 599]:
             file_path = f"models/{wandb.run.name}_epoch{i}.pt"
-            torch.save(model.state_dict(), file_path)
+            torch.save(cProGAN.state_dict(), file_path)
             # wandb.save(file_path)
 
 
