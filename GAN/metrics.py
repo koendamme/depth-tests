@@ -1,4 +1,5 @@
 import torch
+import torchvision
 
 
 def normalized_mean_squared_error(fake_batch, real_batch):
@@ -12,6 +13,22 @@ def gaussian_window(size, sigma=1.5):
     x, y = torch.meshgrid(coords, coords, indexing="ij")
     gaussian = torch.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
     return (gaussian / gaussian.sum())[None, None]
+
+
+def inception_score(fake_images):
+    inception = torchvision.models.inception_v3(weights=torchvision.models.Inception_V3_Weights.DEFAULT)
+
+    # Input must have 3 channels
+    fake_images = fake_images.repeat(1, 3, 1, 1)
+    # Input must be (299 x 299)
+    fake_images = torch.nn.functional.interpolate(input=fake_images, size=(299, 299), mode="bilinear")
+
+    output = inception(fake_images).logits
+    p_yx = torch.nn.functional.softmax(output)
+    p_y = p_yx.mean(dim=0)
+
+    return torch.exp((p_yx * (torch.log2(p_yx) - torch.log2(p_y))).sum(dim=1).mean())
+
 
 
 def ssim(fake_batch, real_batch, pixel_range=2):
@@ -39,12 +56,8 @@ def ssim(fake_batch, real_batch, pixel_range=2):
 
 def main():
     fake_batch = torch.randn((8, 1, 256, 256))
-    real_batch = torch.randn((8, 1, 256, 256))
-    a = torch.concatenate([fake_batch, fake_batch], dim=0)
-    b = torch.concatenate([fake_batch, real_batch], dim=0)
 
-    score = ssim(a, b)
-    print(score)
+    inception_score(fake_batch)
 
 
 
