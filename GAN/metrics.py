@@ -30,7 +30,6 @@ def inception_score(fake_images):
     return torch.exp((p_yx * (torch.log2(p_yx) - torch.log2(p_y))).sum(dim=1).mean())
 
 
-
 def ssim(fake_batch, real_batch, pixel_range=2):
     k_1, k_2 = .01, .02
     C_1 = (k_1*pixel_range)**2
@@ -54,11 +53,81 @@ def ssim(fake_batch, real_batch, pixel_range=2):
     return torch.mean(num/denom, dim=(1, 2, 3))
 
 
+def patch_is_ndc(patch):
+    L_1 = patch[:, 0, :]
+    L_2 = patch[:, :, -1]
+    L_3 = patch[:, -1, :]
+    L_4 = patch[:, :, 0]
+
+    for edge in [L_1, L_2, L_3, L_4]:
+        mu = torch.nn.functional.conv1d(input=edge, weight=torch.ones((1, 1, 6)) / 6)
+        sigma_sq = torch.nn.functional.conv1d(input=edge * edge, weight=torch.ones((1, 1, 6)) / 6) - mu ** 2
+        if torch.any(sigma_sq < .1):
+            return True
+
+
+def patch_is_nc(patch):
+    n = patch.shape[-1]
+    S_sur = torch.cat([patch[:, :, :n//2-1], patch[:, :, n//2+1:]], dim=2)
+    S_cen = patch[:, :, n//2-1:n//2+1]
+
+    sigma_sur = torch.std(S_sur)
+    sigma_cen = torch.std(S_cen)
+    sigma_blk = torch.std(patch)
+
+    beta = abs(sigma_cen/sigma_sur - sigma_blk)/max(sigma_cen/sigma_sur, sigma_blk)
+
+    return sigma_blk > 2*beta
+
+
+def pique(image_batch, n_blocks):
+    w = gaussian_window(size=7, sigma=1)
+
+    mu = torch.nn.functional.conv2d(input=image_batch, weight=w, padding=3)
+    sigma_sq = torch.nn.functional.conv2d(input=image_batch**2, weight=w, padding=3) - mu**2
+
+    I_hat = (image_batch - mu)/(sigma_sq**.5+1)
+    block_size = I_hat.shape[2] // n_blocks
+    unfolded = torch.nn.functional.unfold(I_hat, kernel_size=block_size, stride=block_size)
+
+    patches = unfolded.view(image_batch.shape[0], 1, block_size, block_size, -1).permute(0, 4, 1, 2, 3)
+
+    pique_values = []
+    for i in range(patches.shape[0]):
+        curr_patches = patches[i]
+        v_k = torch.var(curr_patches, dim=(1, 2, 3))
+
+        total_Dsk = 0
+        N_sa = 0
+        for j in range(curr_patches.shape[0]):
+            # Check whether block is spatially active
+            if v_k[j] >= .1:
+                N_sa += 1
+                is_ndc = patch_is_ndc(curr_patches[j])
+                is_nc = patch_is_nc(curr_patches[j])
+
+                if is_ndc:
+                    total_Dsk += 1 - v_k[j]
+                elif is_nc:
+                    total_Dsk += v_k[j]
+                elif is_nc and is_ndc:
+                    total_Dsk += 1
+                else:
+                    pass
+                    # raise Exception("Either NC or NDC should be true.")
+
+        pique = (total_Dsk + 1) / (N_sa + 1)
+        pique_values.append(pique)
+
+    return torch.tensor(pique_values)
+
+
 def main():
     fake_batch = torch.randn((8, 1, 256, 256))
 
-    inception_score(fake_batch)
+    p = pique(fake_batch, 16)
 
+    print(p)
 
 
 
