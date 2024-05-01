@@ -12,7 +12,7 @@ def main():
     i = 0
     while True:
         depth = depth_camera.get_depth_frame()
-        cv2.imwrite(os.path.join("..", "XD-GRASP", "Test1", f"frame_{i}_{time.time()}.png"), depth)
+        cv2.imwrite(os.path.join("C:", os.sep, "dev", "depth-testing", "1-5", "Test3", "depth", f"frame_{i}_{time.time()}.png"), depth)
         i += 1
 
 
