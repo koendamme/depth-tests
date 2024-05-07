@@ -6,7 +6,7 @@ import numpy as np
 
 def main():
     fps = 30
-    paths = glob.glob(os.path.join("..", "XD-GRASP", "test1", "*.png"))
+    paths = glob.glob(os.path.join("D:", os.sep, "techmed_test_2703", "Test1", "depth", "*.png"))
     paths.sort(key=lambda p: int(p.split("\\")[-1].split("_")[1]))
 
     for path in paths:
