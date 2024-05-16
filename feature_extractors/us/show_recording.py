@@ -3,14 +3,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-data = pd.read_pickle(r"C:\dev\ultrasound\data\pretty_long_cable.pickle")
+# data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 10,56,09.pickle")
+data = pd.read_pickle(r"C:\dev\ultrasound\data\2024-05-13 16,46,13.pickle")
 
 
 for i in range(len(data)):
     row = data[i][0]
     fig = plt.figure()
     plt.plot(row)
-    plt.ylim(-.05, .05)
+    plt.ylim(-.1, .1)
 
     # fig = plt.gcf()
     fig.canvas.draw()

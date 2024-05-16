@@ -27,7 +27,6 @@ def organize_mr():
 
 
 def organize_us():
-    us_data = []
     with open(os.path.join("A", "US", "Wave.opt"), "r") as f:
         times, us_data = [], []
 
@@ -49,8 +48,13 @@ def organize_us():
 
 
 def main():
-    organize_mr()
-    organize_us()
+    dcm = pydicom.dcmread("I43")
+    print()
+
+
+
+    # organize_mr()
+    # organize_us()
 
 
 if __name__ == '__main__':
