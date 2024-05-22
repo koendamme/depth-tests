@@ -18,22 +18,34 @@ def show_window(full_image, min_depth, max_depth, min_time, max_time):
     plt.show()
 
 
-def slide_through_image(full_image, min_depth, max_depth):
+def slide_through_image(full_image, min_depth, max_depth, record=False):
     window_width = 1000
 
-    for i in range(0, full_image.shape[1] - window_width, 7):
+    if record:
+        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+        fps = 15.0
+        out = cv2.VideoWriter("us_recording_enhancedcontrast.mp4", fourcc, fps, (window_width, max_depth - min_depth), 0)
 
-        curr_window = full_image[min_depth:max_depth, i:i+window_width]
-        # curr_window = np.abs(curr_window)
-        # curr_window = np.clip(curr_window, a_min=0, a_max=None)
+    print(window_width, max_depth-min_depth)
 
-        max, min = np.max(curr_window), np.min(curr_window)
+    roi = full_image[min_depth:max_depth, :]
+    roi = (roi - roi.min()) / (roi.max() - roi.min())
+    roi = np.uint8(roi*255)
+    # roi = cv2.equalizeHist(roi)
 
-        curr_window = (curr_window - min) / (max - min)
+    for i in range(0, full_image.shape[1] - window_width, 3):
+        curr_window = roi[:, i:i+window_width]
+
+        if record:
+            print(curr_window.shape)
+
+            out.write(curr_window)
 
         cv2.imshow("window", curr_window)
         cv2.waitKey(1)
 
+    if record:
+        out.release()
     cv2.destroyAllWindows()
 
 
@@ -52,8 +64,8 @@ def get_full_image(path):
 def main():
 
     # data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 10,56,09.pickle")
-    data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 11,06,37.pickle")
-
+    # data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 11,06,37.pickle")
+    data = pd.read_pickle(r"D:\experiment-13-5\Test1\us\2024-05-13 15,35,02.pickle")
     # data = pd.read_pickle(r"C:\dev\ultrasound\data\2024-05-13 16,46,13.pickle")
 
     full_image = np.zeros((len(data), len(data[0][0])))
@@ -64,8 +76,8 @@ def main():
 
     full_image = full_image.T
 
-    # slide_through_image(full_image, 0, 1000)
-    show_window(full_image, 0, 1000, 4400, 5400)
+    slide_through_image(full_image, 300, 800, record=True)
+    # show_window(full_image, 0, 1000, 4400, 5400)
 
 
 if __name__ == '__main__':

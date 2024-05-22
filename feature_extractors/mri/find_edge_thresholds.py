@@ -1,7 +1,7 @@
 import cv2
 import os
 import json
-from feature_extractors.mri.utils import preprocess_image
+from data_formatting.mri.utils import preprocess_image
 
 
 def nothing(x):

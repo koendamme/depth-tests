@@ -10,8 +10,7 @@ def min_max_scale(img):
     return (img - np.min(img)) / (np.max(img) - np.min(img))
 
 
-def main():
-    root_dir = os.path.join("D:", os.sep, "mri_us_experiments_14-5", "mri", "session3")
+def extract_images(root_dir):
     paths = os.listdir(root_dir)
     folders = [folder for folder in paths if os.path.isdir(os.path.join(root_dir, folder))]
 
@@ -30,18 +29,19 @@ def main():
             images.append(np.zeros(img_shape).tolist())
             print("No pixel data")
 
+    return images
+
+
+def main():
+    root_dir = os.path.join("D:", os.sep, "mri_us_experiments_14-5", "mri", "session3")
+    images = extract_images(root_dir)
     with open(os.path.join(root_dir, "images.json"), 'w') as json_file:
         json.dump({'images': images}, json_file, indent=4)
     print(f"JSON file created successfully.")
 
 
 if __name__ == "__main__":
-    # main()
-    paths = glob.glob(r"D:\mri_us_experiments_14-5\mri\session2\100\DICOM\*.dcm")
-
-    dcm = pydicom.dcmread(paths[0])
-    print()
-
+    main()
 
 
 
