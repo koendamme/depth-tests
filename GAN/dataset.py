@@ -12,6 +12,7 @@ from datetime import datetime
 from torchvision import transforms
 import os
 import cv2
+import pickle
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
@@ -90,16 +91,32 @@ class VeenstraDataset(Dataset):
         return self.mri.shape[0]
 
 
+class CustomDataset(Dataset):
+    def __init__(self, root_path, patient):
+        with open(os.path.join(root_path, patient, "mr.pickle"), 'rb') as file:
+            self.mr = torch.tensor(pickle.load(file)["images"])
+
+        with open(os.path.join(root_path, patient, "us.pickle"), 'rb') as file:
+            self.us = torch.tensor(pickle.load(file)["img"][0])
+
+        with open(os.path.join(root_path, patient, "mr2us.pickle"), 'rb') as file:
+            self.mr2us = pickle.load(file)["mr2us"]
+
+    def __getitem__(self, idx):
+        mr = self.mr[idx]
+        mr2us = self.mr2us[idx]
+        us = self.us[:, mr2us-6:mr2us+1]
+
+        return {"mr": mr, "us": us}
+
+    def __len__(self):
+        return 0
+
+
 if __name__ == '__main__':
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    dataset = CustomDataset(r"C:\data", "A")
 
-    dataset = PreiswerkDataset("A", device, False)
+    x = dataset[0]
 
-    print(torch.min(dataset[10][1]), torch.max(dataset[10][1]))
-    mr_timestamps = [datetime.combine(datetime.today(), datetime.utcfromtimestamp(float(mr_time)).time()) for mr_time in dataset.mri["times"]]
-    us_timestamps = [datetime.combine(datetime.today(), datetime.strptime(us_time, "%H:%M:%S").time()) for us_time in dataset.us["times"]]
-    #
-    # start_us, start_mr = us_timestamps[0], mr_timestamps[0]
-    # differences = [(mr_timestamps[i + 1] - mr_timestamps[i]).total_seconds() for i in range(len(mr_timestamps) - 1)]
-    #
-    # us_aligned = [us_time - diff for us_time in us_timestamps]
+    plt.plot(x["us"][:, 0])
+    plt.show()

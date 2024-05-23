@@ -8,13 +8,11 @@ import math
 
 def find_synchronization_points(us_waveform, mri_waveform):
     us_points, mri_points = [], []
-
     def on_click_first(event):
         if event.inaxes is not None and event.button == 3:
             mri_points.append(event.xdata)
             event.inaxes.plot(event.xdata, event.ydata, 'ro')
             event.inaxes.figure.canvas.draw()
-
     def on_click_second(event):
         if event.inaxes is not None and event.button == 3:
             us_points.append(event.xdata)
