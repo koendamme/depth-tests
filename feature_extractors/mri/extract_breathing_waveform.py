@@ -1,3 +1,5 @@
+import matplotlib as mpl
+mpl.use('Qt5Agg')
 import json
 import os
 import cv2
@@ -41,13 +43,15 @@ def extract_waveform(mr_images, save=False, show_result=False):
     line_length = 50
     waveform = []
 
-    line_x, line_middlepoint_y = 55, 69
+    set_vertical_line_position(np.uint8(mr_images[0]))
+    line_x, line_middlepoint_y = 83, 76
+    print(line_x, line_middlepoint_y)
     for i, img in enumerate(mr_images):
         img = np.array(img)
         img = np.uint8(img)
 
         blurred = cv2.GaussianBlur(img, (15, 15), 2)
-        edges = cv2.Canny(blurred, 31, 120)
+        edges = cv2.Canny(blurred, 51, 83)
 
         color_image = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         color_image[edges != 0] = [0, 0, 255]
@@ -77,13 +81,12 @@ def extract_waveform(mr_images, save=False, show_result=False):
 
 
 def main():
-    json_dir = os.path.join("D:", os.sep, "mri_us_experiments_14-5", "mri", "session3", "images.json")
+    json_dir = os.path.join("C:", os.sep, "data", "MRI-28-5", "MRI", "images.json")
 
     with open(json_dir, 'r') as file:
         data = json.load(file)
     imgs = data['images']
-
-    extract_waveform(imgs)
+    extract_waveform(imgs, show_result=True, save=True)
 
 
 

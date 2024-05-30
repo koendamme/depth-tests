@@ -4,6 +4,7 @@ import matplotlib as mpl
 import cv2
 mpl.use('Qt5Agg')
 import matplotlib.pyplot as plt
+from feature_extractors.us.load_us_data import load_to_memory
 
 def show_window(full_image, min_depth, max_depth, min_time, max_time):
     # full_image = full_image[500:1000, 3800:3900]
@@ -29,11 +30,12 @@ def slide_through_image(full_image, min_depth, max_depth, record=False):
     print(window_width, max_depth-min_depth)
 
     roi = full_image[min_depth:max_depth, :]
+    roi = np.abs(roi)
     roi = (roi - roi.min()) / (roi.max() - roi.min())
     roi = np.uint8(roi*255)
-    # roi = cv2.equalizeHist(roi)
+    roi = cv2.equalizeHist(roi)
 
-    for i in range(0, full_image.shape[1] - window_width, 3):
+    for i in range(0, full_image.shape[1] - window_width, 2):
         curr_window = roi[:, i:i+window_width]
 
         if record:
@@ -65,18 +67,23 @@ def main():
 
     # data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 10,56,09.pickle")
     # data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 11,06,37.pickle")
-    data = pd.read_pickle(r"D:\experiment-13-5\Test1\us\2024-05-13 15,35,02.pickle")
+    # data = pd.read_pickle(r"D:\experiment-13-5\Test1\us\2024-05-13 15,35,02.pickle")
     # data = pd.read_pickle(r"C:\dev\ultrasound\data\2024-05-13 16,46,13.pickle")
+    data, _ = load_to_memory(r"C:\data\MRI-28-5\session1.pickle")
+    data = np.array(data).T
 
-    full_image = np.zeros((len(data), len(data[0][0])))
-    print(full_image[0, :].shape)
-    print(data[0][0].shape)
-    for i in range(len(data)):
-        full_image[i, :] = data[i][0]
+    # plt.imshow(data[500:1200, 1000:2000])
+    # plt.show()
 
-    full_image = full_image.T
-
-    slide_through_image(full_image, 300, 800, record=True)
+    # full_image = np.zeros((len(data), len(data[0][0])))
+    # print(full_image[0, :].shape)
+    # print(data[0][0].shape)
+    # for i in range(len(data)):
+    #     full_image[i, :] = data[i][0]
+    #
+    # full_image = full_image.T
+    #
+    slide_through_image(data, 500, 1000, record=False)
     # show_window(full_image, 0, 1000, 4400, 5400)
 
 

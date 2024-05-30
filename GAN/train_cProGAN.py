@@ -1,9 +1,9 @@
 import torch
-from GAN.dataset import PreiswerkDataset
+from GAN.dataset import PreiswerkDataset, CustomDataset
 from GAN.utils import denormalize_tensor, scale_generator_output
 from torch.utils.data import DataLoader, Subset
 import matplotlib.pyplot as plt
-from cProGAN import Generator, Discriminator, ConditionalProGAN
+from models.cProGAN import Generator, Discriminator, ConditionalProGAN
 from tqdm import tqdm
 from datetime import datetime
 import time
@@ -19,7 +19,7 @@ def main():
     config = dict(
         batch_size=16,
         n_epochs=600,
-        desired_resolution=256,
+        desired_resolution=192,
         noise_vector_length=128,
         G_learning_rate=0.0001,
         D_learning_rate=0.0001,
@@ -29,9 +29,10 @@ def main():
         surrogates="US"
     )
 
-    wandb.init(project="Preiswerk-cProGAN", config=config)
+    wandb.init(project="CustomData-cProGAN", config=config)
 
-    dataset = PreiswerkDataset(config["patient"], device=device, global_scaling=False)
+    # dataset = PreiswerkDataset(config["patient"], device=device, global_scaling=False)
+    dataset = CustomDataset("C:\data", config["patient"])
     train_length = int(len(dataset) * .9)
 
     train_subset = Subset(dataset, torch.arange(0, train_length))
@@ -70,14 +71,14 @@ def main():
             "Test_NMSE": nmse.mean()
         })
 
-        save_image(scale_generator_output(test_imgs[0]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_0_fake.png"))
-        save_image(scale_generator_output(real_imgs[0]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_0_real.png"))
-        save_image(scale_generator_output(test_imgs[1]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_1_fake.png"))
-        save_image(scale_generator_output(real_imgs[1]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_1_real.png"))
+        # save_image(scale_generator_output(test_imgs[0]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_0_fake.png"))
+        # save_image(scale_generator_output(real_imgs[0]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_0_real.png"))
+        # save_image(scale_generator_output(test_imgs[1]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_1_fake.png"))
+        # save_image(scale_generator_output(real_imgs[1]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_1_real.png"))
 
-        if i in [574, 581, 599]:
-            file_path = f"models/{wandb.run.name}_epoch{i}.pt"
-            torch.save(cProGAN.state_dict(), file_path)
+        # if i in [574, 581, 599]:
+        #     file_path = f"models/{wandb.run.name}_epoch{i}.pt"
+        #     torch.save(cProGAN.state_dict(), file_path)
             # wandb.save(file_path)
 
 

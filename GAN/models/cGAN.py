@@ -1,6 +1,6 @@
 import torch
 from GAN.dataset import PreiswerkDataset
-from GAN.us_feature_extractor import UsFeatureExtractor
+from GAN.models.us_feature_extractor import UsFeatureExtractor
 
 
 class Generator(torch.nn.Module):

@@ -5,7 +5,7 @@ import os
 from us.recording_to_image import get_full_image
 from us.extract_us_wave import get_wave
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 def process_us_timestamps(start_timestamp, counters):
@@ -76,11 +76,4 @@ points = []
 plt.gcf().canvas.mpl_connect('button_press_event', on_click)
 plt.show()
 
-# print(points)
-#
-# print(datetime.fromtimestamp(-25566.419715305154))
-
-# diff = points[1] - points[0]
-#
-# print(diff)
 

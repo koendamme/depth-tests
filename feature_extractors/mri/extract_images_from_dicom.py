@@ -13,16 +13,17 @@ def min_max_scale(img):
 def extract_images(root_dir):
     paths = os.listdir(root_dir)
     folders = [folder for folder in paths if os.path.isdir(os.path.join(root_dir, folder))]
+    folders.sort(key=lambda p: int(p))
 
     n_frames = len(folders)
     images = []
     img_shape = (192, 192)
 
-    for current_frame in range(3, n_frames + 1):
-        path = glob.glob(os.path.join(root_dir, str(current_frame), "DICOM", "*.dcm"))[0]
+    for f in folders:
+        p = os.path.join(root_dir, f, "DICOM", "*.dcm")
+        path = glob.glob(os.path.join(root_dir, f, "DICOM", "*.dcm"))[0]
         try:
             dcm = pydicom.dcmread(path)
-            # img = np.array(dcm.pixel_array)
             images.append(dcm.pixel_array.tolist())
 
         except AttributeError:
@@ -33,7 +34,7 @@ def extract_images(root_dir):
 
 
 def main():
-    root_dir = os.path.join("D:", os.sep, "mri_us_experiments_14-5", "mri", "session3")
+    root_dir = os.path.join("C:", os.sep, "data", "MRI-28-5", "MRI")
     images = extract_images(root_dir)
     with open(os.path.join(root_dir, "images.json"), 'w') as json_file:
         json.dump({'images': images}, json_file, indent=4)

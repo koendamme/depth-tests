@@ -1,9 +1,9 @@
 import pickle
 import numpy as np
-from datetime import datetime
-from us.extract_us_wave import get_wave
+from us.extract_us_wave import get_wave_updated
 import matplotlib.pyplot as plt
 import math
+from feature_extractors.surrogate_synchronizer import synchronize_signals
 
 
 def find_synchronization_points(us_waveform, mri_waveform):
@@ -36,10 +36,9 @@ def find_synchronization_points(us_waveform, mri_waveform):
 
 
 def synchronize(mri_waveform, us_waveform, show_result=True):
-    us_freq, mri_freq = 20, 2.90
+    us_freq, mri_freq = 50, 2.90
 
     us_points, mri_points = find_synchronization_points(us_waveform, mri_waveform)
-    print(us_points, mri_points)
 
     us_times = us_points / us_freq
     mri_times = mri_points / mri_freq
@@ -71,7 +70,11 @@ def main():
     with open("mri/waveform_data.pickle", 'rb') as file:
         mri_waveform = pickle.load(file)
 
-    us_waveform = get_wave(r"C:\data\mri_us_experiments_14-5\us\2024-05-14 11,06,37.pickle", 200, 800)
+    heat_path = r'C:\Users\kjwdamme\Desktop\Rec-000017.seq'
+    us_path = r"C:\data\MRI-28-5\session1.pickle"
+
+    surrogates = synchronize_signals(heat_path, us_path)
+    us_waveform = get_wave_updated(surrogates["us"], 500, 1000, smooth=True)
 
     mr2us = synchronize(mri_waveform, us_waveform)
 

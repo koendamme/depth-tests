@@ -1,7 +1,7 @@
 import cv2
 import os
 import json
-from data_formatting.mri.utils import preprocess_image
+from feature_extractors.mri.utils import preprocess_image
 
 
 def nothing(x):
@@ -12,7 +12,7 @@ def main():
     cv2.createTrackbar('Threshold1','image',0,100, nothing)
     cv2.createTrackbar('Threshold2','image',0,200, nothing)
 
-    json_dir = os.path.join("D:", os.sep, "mri_us_experiments_14-5", "mri", "session2", "images.json")
+    json_dir = os.path.join("C:", os.sep, "data", "MRI-28-5", "MRI", "images.json")
 
     with open(json_dir, 'r') as file:
         data = json.load(file)

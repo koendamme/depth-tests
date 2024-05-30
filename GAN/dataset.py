@@ -110,7 +110,7 @@ class CustomDataset(Dataset):
         return {"mr": mr, "us": us}
 
     def __len__(self):
-        return 0
+        return self.mr.shape[0]
 
 
 if __name__ == '__main__':

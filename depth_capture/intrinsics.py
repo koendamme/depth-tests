@@ -26,5 +26,13 @@ class Intrinsics:
             self.cx = 468.515625
             self.cy = 422.953125
 
+        elif width == 320 and height == 240:
+            self.width = 320
+            self.height = 240
+            self.fx = 232.955078125
+            self.fy = 233.029296875
+            self.cx = 146.12890625
+            self.cy = 131.91796875
+
     def get_intrinsics(self):
         return open3d.camera.PinholeCameraIntrinsic(self.width, self.height, self.fx, self.fy, self.cx, self.cy)

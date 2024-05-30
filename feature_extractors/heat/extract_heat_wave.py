@@ -1,31 +1,55 @@
 from fnv.file import ImagerFile
 import numpy as np
+import matplotlib as mpl
+mpl.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from tqdm import tqdm
-import pickle
+from datetime import datetime, timedelta
 
 
-def main():
-    im = ImagerFile(r'D:\techmed_synchronisatie_1-5\Test1\heat\Rec-000005.seq')
-    print("Loaded Sequence file")
+def process_timestamp(timestamp):
+    day_of_year, time_part = timestamp.split(':', 1)
+    day_of_year = int(day_of_year)
+    base_date = datetime(year=2024, month=1, day=1)
+    actual_date = base_date + timedelta(days=day_of_year - 1)
+    final_datetime_str = actual_date.strftime('%Y-%m-%d') + ' ' + time_part
+    final_datetime = datetime.strptime(final_datetime_str, '%Y-%m-%d %H:%M:%S.%f')
+    final_datetime = final_datetime + timedelta(hours=2)
+    return final_datetime
+
+
+def extract_heat(path):
+    x, y = None, None
+    circle_radius = 25
+
+    def on_click(event):
+        nonlocal x, y
+        if event.button == 1:  # Left mouse button
+            x = event.xdata
+            y = event.ydata
+
+            circle = plt.Circle((x, y), circle_radius, color='red', fill=False)
+            ax.add_patch(circle)
+            fig.canvas.draw()
+
+    im = ImagerFile(path)
 
     im.get_frame(2500)
     heat_img = np.array(im.final)
     heat_img = heat_img.reshape((480, 640))
 
     fig, ax = plt.subplots()
-
     ax.imshow(heat_img)
 
-    circle_center = (450, 100)
-    circle_radius = 60
+    # Connect the click event to the handler
+    fig.canvas.mpl_connect('button_press_event', on_click)
 
-    ax.add_patch(patches.Circle(circle_center, circle_radius, edgecolor='r', facecolor='none'))
+    # Display the plot
+    plt.show()
+    x_grid, y_grid = np.meshgrid(np.arange(640), np.arange(480))
 
-    x, y = np.meshgrid(np.arange(640), np.arange(480))
-
-    dists = ((x - circle_center[0]) ** 2 + (y - circle_center[1]) ** 2) ** .5
+    dists = ((x_grid - x) ** 2 + (y_grid - y) ** 2) ** .5
     mask = dists < circle_radius
 
     temps = []
@@ -39,10 +63,16 @@ def main():
         temps.append(np.average(curr[mask]))
 
         t = im.frame_info[0]["value"]
+        t = process_timestamp(t).timestamp()
         timestamps.append(t)
 
-    with open("heat_wave.pickle", 'wb') as f:
-        pickle.dump({"temps": temps, "timestamps": timestamps}, f)
+    return timestamps, temps
+
+
+def main():
+    ts, temps = extract_heat(r'C:\Users\kjwdamme\Desktop\Rec-000017.seq')
+    plt.plot(temps)
+    plt.show()
 
 
 if __name__ == '__main__':
