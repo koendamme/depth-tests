@@ -92,31 +92,48 @@ class VeenstraDataset(Dataset):
 
 
 class CustomDataset(Dataset):
-    def __init__(self, root_path, patient):
+    def __init__(self, root_path, patient, us_roi, signals_between_mrs):
         with open(os.path.join(root_path, patient, "mr.pickle"), 'rb') as file:
             self.mr = torch.tensor(pickle.load(file)["images"])
+            self.mr = self.mr * 2 / self.mr.max() -1
 
-        with open(os.path.join(root_path, patient, "us.pickle"), 'rb') as file:
-            self.us = torch.tensor(pickle.load(file)["img"][0])
+        with open(os.path.join(root_path, patient, "surrogates.pickle"), 'rb') as file:
+            surrogates = pickle.load(file)
+            self.us = torch.tensor(np.float32(surrogates["us"]))[:, us_roi[0]:us_roi[1]]
+            self.heat = torch.tensor(np.float32(surrogates["heat"]))
 
         with open(os.path.join(root_path, patient, "mr2us.pickle"), 'rb') as file:
             self.mr2us = pickle.load(file)["mr2us"]
 
+        self.signals_between_mrs = signals_between_mrs
+
+    def visualize(self):
+        for img in self.mr:
+            cv2.imshow("Frame", (img.numpy() + 1)/2)
+            cv2.waitKey(100)
+
     def __getitem__(self, idx):
         mr = self.mr[idx]
         mr2us = self.mr2us[idx]
-        us = self.us[:, mr2us-6:mr2us+1]
+        us = self.us[mr2us-self.signals_between_mrs+1:mr2us+1, :]
+        heat = self.heat[mr2us-self.signals_between_mrs+1:mr2us+1]
 
-        return {"mr": mr, "us": us}
+        return {"mr": mr, "us": us, "heat": heat}
 
     def __len__(self):
         return self.mr.shape[0]
 
 
 if __name__ == '__main__':
-    dataset = CustomDataset(r"C:\data", "A")
+    mri_freq = 2.9
+    surrogate_freq = 50
 
-    x = dataset[0]
+    signals_between_mrs = int(surrogate_freq//mri_freq)
 
-    plt.plot(x["us"][:, 0])
-    plt.show()
+    dataset = CustomDataset(r"C:\data", "A", (500, 1000), signals_between_mrs)
+    dataset.visualize()
+
+    # x = dataset[0]
+
+    # plt.plot(x["us"][:, 0])
+    # plt.show()

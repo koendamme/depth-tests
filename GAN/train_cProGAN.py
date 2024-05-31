@@ -29,10 +29,11 @@ def main():
         surrogates="US"
     )
 
-    wandb.init(project="CustomData-cProGAN", config=config)
+    # wandb.init(project="CustomData-cProGAN", config=config)
 
     # dataset = PreiswerkDataset(config["patient"], device=device, global_scaling=False)
-    dataset = CustomDataset("C:\data", config["patient"])
+    surrogate_freq, mri_freq = 50, 2.9
+    dataset = CustomDataset("C:\data", config["patient"], (500, 1000), int(surrogate_freq//mri_freq))
     train_length = int(len(dataset) * .9)
 
     train_subset = Subset(dataset, torch.arange(0, train_length))
@@ -46,30 +47,31 @@ def main():
         desired_resolution=config["desired_resolution"],
         G_lr=config["G_learning_rate"],
         D_lr=config["D_learning_rate"],
-        us_signal_length=dataset.us.shape[2],
-        us_channels=dataset.us.shape[1],
-        n_critic=config["n_critic"]
+        us_signal_length=dataset.us.shape[1],
+        us_channels=int(surrogate_freq//mri_freq),
+        n_critic=config["n_critic"],
+        heat_signal_length=int(surrogate_freq//mri_freq)
     )
 
-    datestring = datetime.now().strftime("%d-%m-%H%M")
-    os.mkdir(os.path.join("train_video", f"{wandb.run.name}_{datestring}"))
+    # datestring = datetime.now().strftime("%d-%m-%H%M")
+    # os.mkdir(os.path.join("train_video", f"{wandb.run.name}_{datestring}"))
 
     for i in range(config["n_epochs"]):
-        start_time = time.time()
-        D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, config["n_epochs"], i, gp_lambda=config["GP_lambda"])
-        end_time = time.time()
+        # start_time = time.time()
+        # D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, config["n_epochs"], i, gp_lambda=config["GP_lambda"])
+        # end_time = time.time()
 
         test_imgs, real_imgs, nmse = cProGAN.evaluate(test_dataloader)
 
-        wandb.log({
-            "D_loss": D_loss,
-            "G_loss": G_loss,
-            "Test_images": [wandb.Image(scale_generator_output(test_imgs[i]), caption=f"Test Image {i}") for i in range(test_imgs.shape[0])],
-            "Real_images": [wandb.Image(scale_generator_output(real_imgs[i]), caption=f"Real Image {i}") for i in range(real_imgs.shape[0])],
-            "Epoch": i,
-            "Training_epoch_time": end_time - start_time,
-            "Test_NMSE": nmse.mean()
-        })
+        # wandb.log({
+        #     "D_loss": D_loss,
+        #     "G_loss": G_loss,
+        #     "Test_images": [wandb.Image(scale_generator_output(test_imgs[i]), caption=f"Test Image {i}") for i in range(test_imgs.shape[0])],
+        #     "Real_images": [wandb.Image(scale_generator_output(real_imgs[i]), caption=f"Real Image {i}") for i in range(real_imgs.shape[0])],
+        #     "Epoch": i,
+        #     "Training_epoch_time": end_time - start_time,
+        #     "Test_NMSE": nmse.mean()
+        # })
 
         # save_image(scale_generator_output(test_imgs[0]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_0_fake.png"))
         # save_image(scale_generator_output(real_imgs[0]), os.path.join("train_video", f"{wandb.run.name}_{datestring}", f"Epoch{i}_0_real.png"))

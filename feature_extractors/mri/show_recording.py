@@ -13,21 +13,23 @@ def min_max_scale(img):
 def main():
     json_dir = os.path.join("C:", os.sep, "data", "MRI-28-5", "MRI", "images.json")
 
-    with open(json_dir, 'r') as file:
+    with (open(json_dir, 'r') as file):
         data = json.load(file)
-        imgs = data['images']
+        imgs = np.array(data['images'])
 
-        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-        fps = 15.0
-        out = cv2.VideoWriter("video session2.mp4", fourcc, fps, (192, 192), 0)
+        # fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+        # fps = 15.0
+        # out = cv2.VideoWriter("video session2.mp4", fourcc, fps, (192, 192), 0)
 
         current_frame = 0
         paused = False
         while current_frame < len(imgs):
-            img = np.array(imgs[current_frame])
+            img = imgs[current_frame]
+            img = img/imgs.max()
+
             # img = min_max_scale(img) if np.sum(img) != 0 else img
-            img = np.uint8(img)
-            out.write(img)
+            img = np.uint8(img*255)
+            # out.write(img)
 
             cv2.imshow("Frame", img)
             current_frame = current_frame + 1 if not paused else current_frame
@@ -42,7 +44,7 @@ def main():
             elif key == ord('a'):
                 current_frame = max(current_frame - 1, 0)
 
-        out.release()
+        # out.release()
         cv2.destroyAllWindows()
 
 

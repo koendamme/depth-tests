@@ -23,10 +23,10 @@ class UsFeatureExtractor(torch.nn.Module):
         super(UsFeatureExtractor, self).__init__()
         self.output_length = input_length//2//2//2//2
         self.model = torch.nn.Sequential(*[
-            ConvBlock(input_channels, 64),
-            ConvBlock(64, 32),
-            ConvBlock(32, 16),
-            ConvBlock(16, 1)
+            ConvBlock(input_channels, 17),
+            ConvBlock(17, 12),
+            ConvBlock(12, 6),
+            ConvBlock(6, 1)
         ])
 
     def forward(self, input):
