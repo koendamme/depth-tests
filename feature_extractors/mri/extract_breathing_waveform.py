@@ -43,7 +43,7 @@ def extract_waveform(mr_images, save=False, show_result=False):
     line_length = 50
     waveform = []
 
-    set_vertical_line_position(np.uint8(mr_images[0]))
+    # set_vertical_line_position(np.uint8(mr_images[0]))
     line_x, line_middlepoint_y = 83, 76
     print(line_x, line_middlepoint_y)
     for i, img in enumerate(mr_images):

@@ -100,7 +100,10 @@ class CustomDataset(Dataset):
         with open(os.path.join(root_path, patient, "surrogates.pickle"), 'rb') as file:
             surrogates = pickle.load(file)
             self.us = torch.tensor(np.float32(surrogates["us"]))[:, us_roi[0]:us_roi[1]]
+            self.us = (self.us - self.us.min()) / (self.us.max() - self.us.min())
+
             self.heat = torch.tensor(np.float32(surrogates["heat"]))
+            self.heat = (self.heat - self.heat.min()) / (self.heat.max() - self.heat.min())
 
         with open(os.path.join(root_path, patient, "mr2us.pickle"), 'rb') as file:
             self.mr2us = pickle.load(file)["mr2us"]

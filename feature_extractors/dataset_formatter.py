@@ -13,12 +13,12 @@ def main():
     us_path = r"C:\data\MRI-28-5\session1.pickle"
     save_path = os.path.join(root_dir, "synchronized_surrogates.pickle")
 
-    if not os.path.exists(root_dir):
-        os.makedirs(root_dir)
+    # if not os.path.exists(root_dir):
+    #     os.makedirs(root_dir)
 
     mri_images = extract_images(root_dir=r"C:\data\MRI-28-5\MRI")
-    with open(os.path.join(root_dir, "mr.pickle"), 'wb') as file:
-        pickle.dump({"images": mri_images}, file)
+    # with open(os.path.join(root_dir, "mr.pickle"), 'wb') as file:
+    #     pickle.dump({"images": mri_images}, file)
 
     d = synchronize_signals(heat_path, us_path, save_path)
 
@@ -27,8 +27,8 @@ def main():
 
     mr2us = synchronize(mri_waveform, us_waveform)
 
-    with open(os.path.join(root_dir, "mr2us.pickle"), 'wb') as file:
-        pickle.dump({"mr2us": mr2us}, file)
+    # with open(os.path.join(root_dir, "mr2us.pickle"), 'wb') as file:
+    #     pickle.dump({"mr2us": mr2us}, file)
 
 
 if __name__ == '__main__':
