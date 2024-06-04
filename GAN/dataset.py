@@ -108,20 +108,24 @@ class CustomDataset(Dataset):
         with open(os.path.join(root_path, patient, "mr2us.pickle"), 'rb') as file:
             self.mr2us = pickle.load(file)["mr2us"]
 
+        with open(os.path.join(root_path, patient, "mri_waveform.pickle"), 'rb') as file:
+            self.mr_wave = pickle.load(file)
+
         self.signals_between_mrs = signals_between_mrs
 
     def visualize(self):
         for img in self.mr:
             cv2.imshow("Frame", (img.numpy() + 1)/2)
-            cv2.waitKey(100)
+            cv2.waitKey(10)
 
     def __getitem__(self, idx):
         mr = self.mr[idx]
         mr2us = self.mr2us[idx]
         us = self.us[mr2us-self.signals_between_mrs+1:mr2us+1, :]
         heat = self.heat[mr2us-self.signals_between_mrs+1:mr2us+1]
+        mr_wave = self.mr_wave[idx]
 
-        return {"mr": mr, "us": us, "heat": heat}
+        return {"mr": mr, "us": us, "heat": heat, "mr_wave": mr_wave}
 
     def __len__(self):
         return self.mr.shape[0]
@@ -136,7 +140,8 @@ if __name__ == '__main__':
     dataset = CustomDataset(r"C:\data", "A", (500, 1000), signals_between_mrs)
     dataset.visualize()
 
-    # x = dataset[0]
+    print(len(dataset.mr))
+    print(len(dataset.mr_wave))
 
-    # plt.plot(x["us"][:, 0])
-    # plt.show()
+
+

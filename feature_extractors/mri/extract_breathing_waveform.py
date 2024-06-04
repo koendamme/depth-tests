@@ -68,7 +68,7 @@ def extract_waveform(mr_images, save=False, show_result=False):
     cv2.destroyAllWindows()
 
     if save:
-        with open("waveform_data.pickle", 'wb') as file:
+        with open("mri_waveform.pickle", 'wb') as file:
             pickle.dump(waveform, file)
 
     if show_result:
@@ -81,11 +81,9 @@ def extract_waveform(mr_images, save=False, show_result=False):
 
 
 def main():
-    json_dir = os.path.join("C:", os.sep, "data", "MRI-28-5", "MRI", "images.json")
+    with open(os.path.join("C:", os.sep, "data", "A", "mr.pickle"), 'rb') as file:
+        imgs = pickle.load(file)["images"]
 
-    with open(json_dir, 'r') as file:
-        data = json.load(file)
-    imgs = data['images']
     extract_waveform(imgs, show_result=True, save=True)
 
 
