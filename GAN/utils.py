@@ -35,3 +35,15 @@ def scale_input(data, new_min, new_max):
     return new_min + (data - torch.min(data))*(new_max - new_min)/(torch.max(data) - torch.min(data))
 
 
+def create_video(fake_imgs, real_imgs):
+    frames = []
+    for fake, real in zip(fake_imgs, real_imgs):
+        f = torch.concatenate([scale_generator_output(fake), scale_generator_output(real)[None, :, :]],
+                              dim=2).detach().cpu().numpy()
+        f = np.concatenate([f, f, f], axis=0)
+        f = np.uint8(f * 255)
+        frames.append(f)
+
+    return np.array(frames)
+
+

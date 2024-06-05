@@ -7,16 +7,22 @@ from matplotlib.backend_bases import MouseButton
 
 
 def main():
-    if not os.path.exists("temp_waveform.pickle"):
-        mri_images = extract_images(root_dir=r"C:\data\MRI-28-5\MRI")
-        mri_waveform = extract_waveform(mri_images)
-        with open('temp_waveform.pickle', 'wb') as f:
-            pickle.dump(mri_waveform, f)
-    else:
-        with open('temp_waveform.pickle', 'rb') as f:
-            mri_waveform = pickle.load(f)
+    # if not os.path.exists("temp_waveform.pickle"):
+    #     mri_images = extract_images(root_dir=r"C:\data\MRI-28-5\MRI")
+    #     mri_waveform = extract_waveform(mri_images)
+    #     with open('temp_waveform.pickle', 'wb') as f:
+    #         pickle.dump(mri_waveform, f)
+    # else:
+    #     with open('temp_waveform.pickle', 'rb') as f:
+    #         mri_waveform = pickle.load(f)
+
+    with open(os.path.join("C:", os.sep, "data", "A", "mri_waveform.pickle"), 'rb') as f:
+        mri_waveform = pickle.load(f)
 
     d = split_dataset(mri_waveform)
+    with open(os.path.join("C:", os.sep, "data", "A", "splits.pickle"), 'wb') as file:
+        pickle.dump(d, file)
+
     print(d)
 
 

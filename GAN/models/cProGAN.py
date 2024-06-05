@@ -195,16 +195,23 @@ class ConditionalProGAN(torch.nn.Module):
         self.D.eval()
         self.G.eval()
 
-        data = next(iter(dataloader))
-        mr_batch, wave_batch = data["mr"].to(self.device), data["mr_wave"].to(self.device)[:, None, None, None]
-        noise_batch = torch.randn(mr_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-        fake = self.G(noise_batch, wave_batch, self.curr_step, self.curr_alpha)
-        fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
-        nmse = normalized_mean_squared_error(fake_upscaled, mr_batch)
+        fake_to_return = []
+        real_to_return = []
+        all_nmse = []
+        for data in dataloader:
+            mr_batch = data["mr"]
+            wave_batch = data["mr_wave"][:, None, None, None]
+            mr_batch, wave_batch = mr_batch.to(self.device), wave_batch.to(self.device)
 
-        assert fake_upscaled.shape[-1] == self.desired_resolution
+            noise_batch = torch.randn(mr_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
+            fake = self.G(noise_batch, wave_batch, self.curr_step, self.curr_alpha)
+            fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
+            nmse = normalized_mean_squared_error(fake_upscaled, mr_batch)
+            all_nmse.extend(nmse)
+            fake_to_return.extend(fake_upscaled[:3])
+            real_to_return.extend(mr_batch[:3])
 
-        return fake_upscaled, mr_batch, nmse
+        return fake_to_return, real_to_return, all_nmse
 
     def compute_gradient_penalty(self, real, fake, mr_wave):
         epsilon = torch.rand((real.shape[0], 1, 1, 1), device=self.device)

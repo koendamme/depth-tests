@@ -111,12 +111,15 @@ class CustomDataset(Dataset):
         with open(os.path.join(root_path, patient, "mri_waveform.pickle"), 'rb') as file:
             self.mr_wave = pickle.load(file)
 
+        with open(os.path.join(root_path, patient, "splits.pickle"), 'rb') as file:
+            self.splits = pickle.load(file)
+
         self.signals_between_mrs = signals_between_mrs
 
     def visualize(self):
         for img in self.mr:
             cv2.imshow("Frame", (img.numpy() + 1)/2)
-            cv2.waitKey(10)
+            cv2.waitKey(30)
 
     def __getitem__(self, idx):
         mr = self.mr[idx]
