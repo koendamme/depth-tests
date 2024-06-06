@@ -147,10 +147,16 @@ class ConditionalProGAN(torch.nn.Module):
         self.D_optimizer = torch.optim.Adam(self.D.parameters(), betas=(0, 0.99), lr=D_lr, eps=1e-8)
 
     def train_single_epoch(self, dataloader, total_epochs, current_epoch, gp_lambda):
+        if total_epochs % self.total_steps != 0:
+            raise Exception("Total number of epochs should be divisible by the total number of steps")
+
         self.D.train()
         self.G.train()
-        self.curr_step = self._get_step(total_epochs, self.total_steps, current_epoch)
-        self.curr_alpha = self._get_alpha(current_epoch, total_epochs // self.total_steps, quickness=2)
+        # self.curr_step = self._get_step_linear(total_epochs, self.total_steps, current_epoch)
+        # self.curr_alpha = self._get_alpha_linear(current_epoch, total_epochs // self.total_steps, quickness=2)
+
+        self.curr_step = self._get_step_root(total_epochs, self.total_steps, current_epoch)
+        self.curr_alpha = self._get_alpha_root(total_epochs, self.total_steps, current_epoch, self.curr_step, quickness=2)
 
         running_D_loss, running_G_loss = 0, 0
         for i_batch, data in tqdm(enumerate(dataloader), desc=f"Epoch {current_epoch + 1}, step {self.curr_step}, alpha {round(self.curr_alpha, 2)}: ", total=len(dataloader)):
@@ -231,17 +237,35 @@ class ConditionalProGAN(torch.nn.Module):
         return gradient_penalty
 
     @staticmethod
-    def _get_alpha(curr_epoch, epochs_per_step, quickness):
+    def _get_alpha_linear(curr_epoch, epochs_per_step, quickness):
         alpha = quickness * (curr_epoch % epochs_per_step) / epochs_per_step
 
         return alpha if alpha <= 1 else 1
 
     @staticmethod
-    def _get_step(n_epochs, total_steps, curr_epoch):
-        epochs_per_step = n_epochs//total_steps
-        step = int((total_steps-1)/(n_epochs - epochs_per_step - 1) * curr_epoch)
+    def _get_step_linear(n_epochs, total_steps, curr_epoch):
+        epochs_per_step = n_epochs // total_steps
+        step = int(curr_epoch / (epochs_per_step))
 
-        return min(step, total_steps-1)
+        return min(step, int(total_steps - 1))
+
+    @staticmethod
+    def _get_step_root(n_epochs, n_steps, curr_epoch):
+        return math.floor(n_steps / math.sqrt(n_epochs) * math.sqrt(curr_epoch))
+
+    @staticmethod
+    def _get_alpha_root(n_epochs, n_steps, curr_epoch, curr_step, quickness=2):
+        # curr_step = _get_step_root(n_epochs, n_steps, curr_epoch)
+
+        start_step = math.ceil(n_epochs * curr_step ** 2 / n_steps ** 2)
+        end_step = math.ceil(n_epochs * (curr_step + 1) ** 2 / n_steps ** 2)
+
+        dx = (end_step - start_step) / quickness
+        dy = 1
+
+        alpha = dy / dx * (curr_epoch - start_step)
+
+        return min(alpha, 1)
 
 
 def main():

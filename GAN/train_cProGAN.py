@@ -20,7 +20,7 @@ def main():
 
     config = dict(
         batch_size=16,
-        n_epochs=40,
+        n_epochs=42,
         desired_resolution=192,
         noise_vector_length=128,
         G_learning_rate=0.0001,
@@ -59,19 +59,19 @@ def main():
         D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, config["n_epochs"], i, gp_lambda=config["GP_lambda"])
         end_time = time.time()
 
+        vids = []
         for pattern, val_loader in zip(val_patterns, val_loaders):
             fake_imgs, real_imgs, _ = cProGAN.evaluate(val_loader)
             video = create_video(fake_imgs, real_imgs)
-            wandb.log({
-                f"{pattern} Video": wandb.Video(video, fps=5)
-            }, step=i)
+            vids.append(wandb.Video(video, fps=5, caption=pattern))
 
         wandb.log({
             "D_loss": D_loss,
             "G_loss": G_loss,
             "Epoch": i,
             "Training_epoch_time": end_time - start_time,
-        }, step=i)
+            "Videos": vids
+        })
 
 
 if __name__ == '__main__':

@@ -95,7 +95,8 @@ class CustomDataset(Dataset):
     def __init__(self, root_path, patient, us_roi, signals_between_mrs):
         with open(os.path.join(root_path, patient, "mr.pickle"), 'rb') as file:
             self.mr = torch.tensor(pickle.load(file)["images"])
-            self.mr = self.mr * 2 / self.mr.max() -1
+            self.mr = torch.clip(self.mr, min=0, max=255) * 2 / 255 - 1
+            # self.mr = self.mr * 2 / self.mr.max() -1
 
         with open(os.path.join(root_path, patient, "surrogates.pickle"), 'rb') as file:
             surrogates = pickle.load(file)
@@ -143,8 +144,12 @@ if __name__ == '__main__':
     dataset = CustomDataset(r"C:\data", "A", (500, 1000), signals_between_mrs)
     dataset.visualize()
 
-    print(len(dataset.mr))
-    print(len(dataset.mr_wave))
+    # plt.plot(dataset.mr_wave)
+    # plt.title("MR Waveform")
+    # plt.xlabel("Index")
+    # plt.ylabel("Distance from set point")
+    # plt.tight_layout()
+    # plt.show()
 
 
 
