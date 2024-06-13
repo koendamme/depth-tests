@@ -10,6 +10,7 @@ import json
 import pydicom
 from datetime import datetime
 from torchvision import transforms
+from torchvision.transforms.functional import equalize
 import os
 import cv2
 import pickle
@@ -94,9 +95,11 @@ class VeenstraDataset(Dataset):
 class CustomDataset(Dataset):
     def __init__(self, root_path, patient, us_roi, signals_between_mrs):
         with open(os.path.join(root_path, patient, "mr.pickle"), 'rb') as file:
-            self.mr = torch.tensor(pickle.load(file)["images"])
-            self.mr = torch.clip(self.mr, min=0, max=255) * 2 / 255 - 1
-            # self.mr = self.mr * 2 / self.mr.max() -1
+            self.mr = pickle.load(file)["images"]
+            self.mr = np.clip(self.mr, a_min=0, a_max=255).astype(np.uint8)
+            self.mr = cv2.addWeighted(self.mr, 1.5, np.zeros(self.mr.shape, self.mr.dtype), 0, 0)
+            self.mr = torch.from_numpy(self.mr).float()
+            self.mr = self.mr * 2 / 255 - 1
 
         with open(os.path.join(root_path, patient, "surrogates.pickle"), 'rb') as file:
             surrogates = pickle.load(file)
@@ -110,7 +113,8 @@ class CustomDataset(Dataset):
             self.mr2us = pickle.load(file)["mr2us"]
 
         with open(os.path.join(root_path, patient, "mri_waveform.pickle"), 'rb') as file:
-            self.mr_wave = pickle.load(file)
+            self.mr_wave = torch.tensor(pickle.load(file))
+            self.mr_wave = (self.mr_wave - self.mr_wave.min()) / (self.mr_wave.max() - self.mr_wave.min())
 
         with open(os.path.join(root_path, patient, "splits.pickle"), 'rb') as file:
             self.splits = pickle.load(file)
@@ -142,14 +146,8 @@ if __name__ == '__main__':
     signals_between_mrs = int(surrogate_freq//mri_freq)
 
     dataset = CustomDataset(r"C:\data", "A", (500, 1000), signals_between_mrs)
-    dataset.visualize()
-
-    # plt.plot(dataset.mr_wave)
-    # plt.title("MR Waveform")
-    # plt.xlabel("Index")
-    # plt.ylabel("Distance from set point")
-    # plt.tight_layout()
-    # plt.show()
+    plt.plot(dataset.mr_wave)
+    plt.show()
 
 
 

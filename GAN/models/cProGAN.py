@@ -214,8 +214,8 @@ class ConditionalProGAN(torch.nn.Module):
             fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - self.curr_step - 1), mode='nearest')
             nmse = normalized_mean_squared_error(fake_upscaled, mr_batch)
             all_nmse.extend(nmse)
-            fake_to_return.extend(fake_upscaled[:3])
-            real_to_return.extend(mr_batch[:3])
+            fake_to_return.extend(fake_upscaled)
+            real_to_return.extend(mr_batch)
 
         return fake_to_return, real_to_return, all_nmse
 

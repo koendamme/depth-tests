@@ -24,11 +24,11 @@ try:
 
     # Tell config that we will use a recorded device from file to be used by the pipeline through playback.
     # rs.config.enable_device_from_file(config, paths[test_number])
-    rs.config.enable_device_from_file(config, r"D:\MRI-28-5\depth\20240528_141637.bag", repeat_playback=False)
+    rs.config.enable_device_from_file(config, r"F:\MRI-28-5\depth\depth_raw_session1.bag", repeat_playback=False)
 
     # Configure the pipeline to stream the depth stream
     # Change this parameters according to the recorded bag file resolution
-    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    # config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 1280, 720, rs.format.rgb8, 30)
 
     # Start streaming from file
@@ -41,18 +41,19 @@ try:
     print(playback.current_status())
     while playback.current_status() == rs.playback_status.playing:
         frames = pipeline.wait_for_frames()
-        frames = align.process(frames)
+        # frames = align.process(frames)
 
-        depth = frames.get_depth_frame()
+        # depth = frames.get_depth_frame()
         # depth = rs.temporal_filter().process(depth)
-        depth = np.asanyarray(depth.get_data())
+        # depth = np.asanyarray(depth.get_data())
 
         rgb = frames.get_color_frame()
         rgb = np.asanyarray(rgb.get_data())
 
-        root = os.path.join("D:", os.sep, "MRI-28-5", "depth", "session1_no_temperal")
-        cv2.imwrite(os.path.join(root, "depth", f"frame_{i}.png"), depth)
-        cv2.imwrite(os.path.join(root, "rgb", f"frame_{i}.png"), rgb)
+        # root = os.path.join("D:", os.sep, "MRI-28-5", "depth", "session1_no_temperal")
+        # cv2.imwrite(os.path.join(root, "depth", f"frame_{i}.png"), depth)
+        # cv2.imwrite(os.path.join(root, "rgb", f"frame_{i}.png"), rgb)
+        cv2.imwrite(os.path.join("F:", os.sep, "MRI-28-5", "depth", "session1_rgb2", f"Frame_{i}.png"), rgb)
         i += 1
 
 finally:

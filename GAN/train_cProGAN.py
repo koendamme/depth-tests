@@ -19,16 +19,16 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     config = dict(
-        batch_size=16,
-        n_epochs=42,
+        batch_size=24,
+        n_epochs=60,
         desired_resolution=192,
         noise_vector_length=128,
         G_learning_rate=0.0001,
-        D_learning_rate=0.001,
+        D_learning_rate=0.0001,
         GP_lambda=10,
         n_critic=1,
         patient="A",
-        surrogates="US"
+        surrogates="MR Wave"
     )
 
     wandb.init(project="CustomData-cProGAN-mr_surrogate", config=config)
