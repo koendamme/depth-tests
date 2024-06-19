@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 # dir_path = os.path.join("..", "random_tests", "rgbd_test", "640", "depth")
-dir_path = os.path.join("D:", os.sep, "koen_mri_room", "test")
+dir_path = os.path.join("data", "depth")
 
 
 def main():

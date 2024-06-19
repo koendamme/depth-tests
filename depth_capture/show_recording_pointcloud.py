@@ -10,7 +10,7 @@ import time
 def main():
     # fps = 30
     scale = 0.00025
-    paths = glob.glob(os.path.join("D:", os.sep, "techmed_test_2703", "Test4", "depth", "*.png"))
+    paths = glob.glob(os.path.join("C:", os.sep, "data", "test", "4", "rgbd", "depth", "*.png"))
     paths.sort(key=lambda p: int(p.split("\\")[-1].split("_")[1]))
     intr = Intrinsics(width=640, height=480)
 

@@ -10,7 +10,7 @@ from feature_extractors.us.load_us_data import load_to_memory
 # data = pd.read_pickle(r"C:\dev\ultrasound\data\test1.pickle")
 
 
-data, _ = load_to_memory(r"C:\data\MRI-28-5\session1.pickle")
+data, _ = load_to_memory(r"C:\data\A_raw\session2 rerun\us\session.pickle")
 
 for i in range(len(data)):
     row = data[i]

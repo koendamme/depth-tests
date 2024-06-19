@@ -35,9 +35,7 @@ def find_synchronization_points(us_waveform, mri_waveform):
     return np.array(us_points), np.array(mri_points)
 
 
-def synchronize(mri_waveform, us_waveform, show_result=True):
-    us_freq, mri_freq = 50, 2.90
-
+def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
     us_points, mri_points = find_synchronization_points(us_waveform, mri_waveform)
 
     us_times = us_points / us_freq

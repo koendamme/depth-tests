@@ -31,7 +31,12 @@ def main():
 
         cv2.imshow('image', color_image)
 
-        index = index + 1 if cv2.waitKey(20) == ord('q') else index
+        key = cv2.waitKey(20)
+        if key == ord('w'):
+            index += 1
+        elif key == ord('q'):
+            break
+
 
 
 if __name__ == '__main__':

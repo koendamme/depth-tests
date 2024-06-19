@@ -43,10 +43,11 @@ def get_wave(path, depth_min, depth_max):
 def main():
     # data = pd.read_pickle(r"C:\dev\ultrasound\mri_experiment\test1\2024-05-14 11,06,37.pickle")
     # path = r"C:\data\mri_us_experiments_14-5\us\2024-05-14 11,06,37.pickle"
-    path = r"C:\data\MRI-28-5\session1.pickle"
+    # path = r"C:\data\MRI-28-5\session1.pickle"
     # c = get_wave(path, 200, 800)
-    data, _ = load_to_memory(path)
-    c = get_wave_updated(data, 500, 1000, smooth=True)
+    # data, _ = load_to_memory(path)
+    data, _ = load_to_memory(r"C:\data\A_raw\session3 (2 rerun)\us\session.pickle")
+    c = get_wave_updated(data, 300, 1000, smooth=True)
 
     plt.plot(c)
     plt.show()
