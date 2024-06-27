@@ -7,23 +7,16 @@ from matplotlib.backend_bases import MouseButton
 
 
 def main():
-    # if not os.path.exists("temp_waveform.pickle"):
-    #     mri_images = extract_images(root_dir=r"C:\data\MRI-28-5\MRI")
-    #     mri_waveform = extract_waveform(mri_images)
-    #     with open('temp_waveform.pickle', 'wb') as f:
-    #         pickle.dump(mri_waveform, f)
-    # else:
-    #     with open('temp_waveform.pickle', 'rb') as f:
-    #         mri_waveform = pickle.load(f)
+    root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
+    subjects = ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]
 
-    with open(os.path.join("C:", os.sep, "data", "A", "mri_waveform.pickle"), 'rb') as f:
-        mri_waveform = pickle.load(f)
+    for s in subjects:
+        with open(os.path.join(root, s, "mr_wave.pickle"), 'rb') as f:
+            mri_waveform = pickle.load(f)["mri_waveform"]
 
-    d = split_dataset(mri_waveform)
-    with open(os.path.join("C:", os.sep, "data", "A", "splits.pickle"), 'wb') as file:
-        pickle.dump(d, file)
-
-    print(d)
+        d = split_dataset(mri_waveform)
+        with open(os.path.join(root, s, "splits.pickle"), 'wb') as file:
+            pickle.dump(d, file)
 
 
 def split_dataset(mri_waveform):
@@ -34,10 +27,10 @@ def split_dataset(mri_waveform):
         plt.plot(mri_waveform)
         plt.title(pattern)
         if i == 0:
-            points = plt.ginput(2, mouse_add=MouseButton.RIGHT, mouse_pop=None)
+            points = plt.ginput(2, mouse_add=MouseButton.RIGHT, mouse_pop=None, timeout=100)
             data[pattern] = {"start": int(points[0][0]), "end": int(points[1][0])}
         else:
-            points = plt.ginput(1, mouse_add=MouseButton.RIGHT, mouse_pop=None)
+            points = plt.ginput(1, mouse_add=MouseButton.RIGHT, mouse_pop=None, timeout=100)
             data[pattern] = {"start": data[patterns[i-1]]["end"] + 1, "end": int(points[0][0])}
 
         plt.close()
