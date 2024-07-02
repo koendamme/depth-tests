@@ -18,7 +18,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
 class PreiswerkDataset(Dataset):
-    def __init__(self, patient, device, global_scaling):
+    def __init__(self, patient, global_scaling):
         path = {
             "A": os.path.join("..", "Preiswerk", "datasets", "A", "1"),
             "B": os.path.join("..", "Preiswerk", "datasets", "B", "2"),
@@ -66,7 +66,7 @@ class PreiswerkDataset(Dataset):
 class VeenstraDataset(Dataset):
     def __init__(self):
         with open(os.path.join("..", "Veenstra", "new_A", "mri.json")) as f:
-            self.mri = torch.tensor(json.load(f)["mri_data"], dtype=torch.float32)
+            self.mri = json.load(f)
 
         with open(os.path.join("..", "Veenstra", "new_A", "us.json")) as f:
             self.us = json.load(f)
@@ -74,7 +74,8 @@ class VeenstraDataset(Dataset):
         self.resize = transforms.Resize(256)
 
     def visualize(self):
-        for img in self.mri["mri_data"]:
+        for row in self.mri:
+            img = row["img"]
             img = np.array(img)
             max, min = np.max(img), np.min(img)
             img = (img - min)/(max-min)
@@ -84,9 +85,10 @@ class VeenstraDataset(Dataset):
         cv2.destroyAllWindows()
 
     def __getitem__(self, idx):
-        scaled = scale_input(self.mri[idx], -1, 1)
+        img = torch.tensor(self.mri[idx]["img"])
+        scaled = scale_input(img, -1, 1)
         resized = self.resize(scaled.unsqueeze(0))
-        return resized
+        return resized, self.mri[idx]["timestamp"]
 
     def __len__(self):
         return self.mri.shape[0]

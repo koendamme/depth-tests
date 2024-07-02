@@ -32,7 +32,7 @@ def scale_generator_output(data):
     return (data+1)/2
 
 def scale_input(data, new_min, new_max):
-    return new_min + (data - torch.min(data))*(new_max - new_min)/(torch.max(data) - torch.min(data))
+    return new_min + ((data - torch.min(data))*(new_max - new_min))/(torch.max(data) - torch.min(data))
 
 
 def create_video(fake_imgs, real_imgs):

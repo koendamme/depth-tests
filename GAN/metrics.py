@@ -1,5 +1,7 @@
 import torch
 import torchvision
+from GAN.dataset import VeenstraDataset
+from GAN.utils import min_max_scale_tensor
 
 
 def normalized_mean_squared_error(fake_batch, real_batch):
@@ -19,12 +21,12 @@ def inception_score(fake_images):
     inception = torchvision.models.inception_v3(weights=torchvision.models.Inception_V3_Weights.DEFAULT)
 
     # Input must have 3 channels
-    fake_images = fake_images.repeat(1, 3, 1, 1)
+    fake_images = fake_images.repeat(8, 3, 1, 1)
     # Input must be (299 x 299)
     fake_images = torch.nn.functional.interpolate(input=fake_images, size=(299, 299), mode="bilinear")
 
     output = inception(fake_images).logits
-    p_yx = torch.nn.functional.softmax(output)
+    p_yx = torch.nn.functional.softmax(output, dim=1)
     p_y = p_yx.mean(dim=0)
 
     return torch.exp((p_yx * (torch.log2(p_yx) - torch.log2(p_y))).sum(dim=1).mean())
@@ -123,12 +125,11 @@ def pique(image_batch, n_blocks):
 
 
 def main():
-    fake_batch = torch.randn((8, 1, 256, 256))
-
-    p = pique(fake_batch, 16)
-
-    print(p)
-
+    data = VeenstraDataset()
+    mr = data[0][0]
+    # plt.imshow(mr.squeeze(), cmap="gray")
+    s = inception_score(mr.squeeze()[None])
+    print("Score: ", s)
 
 
 if __name__ == '__main__':
