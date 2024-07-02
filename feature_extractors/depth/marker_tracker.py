@@ -41,7 +41,8 @@ def track_marker(root, grayscale_threshold, x_line, roi, show=False):
             cv2.line(overlay, [x_line, 0], [x_line, overlay.shape[0]], [255, 0, 0], 2)
             cv2.circle(overlay, [x_line, intersection], 2, [0, 255, 0], 2)
             cv2.imshow("image", overlay)
-            cv2.waitKey(1)
+            cv2.imwrite("coil.png", overlay)
+            cv2.waitKey(0)
 
     with open("tracked_coil.pickle", "wb") as f:
         pickle.dump(waveform, f)

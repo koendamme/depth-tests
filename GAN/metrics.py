@@ -5,9 +5,10 @@ from GAN.utils import min_max_scale_tensor
 
 
 def normalized_mean_squared_error(fake_batch, real_batch):
-    nom = torch.linalg.matrix_norm(fake_batch - real_batch) ** 2
+    nom = torch.linalg.matrix_norm(fake_batch - real_batch[:, None, :, :]) ** 2
     denom = torch.linalg.matrix_norm(real_batch) ** 2
-    return nom/denom
+    o = nom.squeeze()/denom
+    return o
 
 
 def gaussian_window(size, sigma=1.5):
@@ -32,14 +33,14 @@ def inception_score(fake_images):
     return torch.exp((p_yx * (torch.log2(p_yx) - torch.log2(p_y))).sum(dim=1).mean())
 
 
-def ssim(fake_batch, real_batch, pixel_range=2):
+def ssim(fake_batch, real_batch, device, pixel_range=2):
     k_1, k_2 = .01, .02
     C_1 = (k_1*pixel_range)**2
     C_2 = (k_2*pixel_range)**2
     x = fake_batch
     y = real_batch
 
-    w = gaussian_window(size=11, sigma=1.5)
+    w = gaussian_window(size=11, sigma=1.5).to(device)
 
     mu_x = torch.nn.functional.conv2d(input=x, weight=w)
     mu_y = torch.nn.functional.conv2d(input=y, weight=w)
@@ -51,8 +52,8 @@ def ssim(fake_batch, real_batch, pixel_range=2):
 
     num = (2*mu_x*mu_y + C_1)*(2*sigma_xy + C_2)
     denom = (mu_x**2 + mu_y**2 + C_1)*(sigma_x_sq + sigma_y_sq + C_2)
-
-    return torch.mean(num/denom, dim=(1, 2, 3))
+    o = torch.mean(num/denom, dim=(1, 2, 3))
+    return o
 
 
 def patch_is_ndc(patch):

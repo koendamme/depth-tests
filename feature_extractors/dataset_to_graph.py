@@ -9,7 +9,7 @@ import json
 
 
 for subject in ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]:
-    root = os.path.join("D:", os.sep, "Formatted_datasets", subject)
+    root = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
 
     with open(os.path.join(root, "mr.pickle"), 'rb') as file:
         mr = pickle.load(file)["images"]
@@ -40,5 +40,5 @@ for subject in ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]:
     fig.add_trace(go.Scatter(x=x_surr, y=us_wave, mode="lines", name="US"), row=2, col=1)
     fig.add_trace(go.Scatter(x=x_surr, y=coil, mode="lines", name="Coil"), row=3, col=1)
     fig.add_trace(go.Scatter(x=x_surr, y=heat, mode="lines", name="Heat"), row=4, col=1)
-    fig.update_layout(height=800, width=600, title="Synchronized Surrogates")
-    fig.write_html(f"D:/Formatted_datasets/Figures/{subject}.html")
+    fig.update_layout(height=800, width=1200, title="Synchronized Surrogates")
+    fig.write_html(f"C:/data/Formatted_datasets/Figures wide/{subject}.html")
