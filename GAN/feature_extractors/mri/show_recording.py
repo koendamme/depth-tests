@@ -11,23 +11,24 @@ def min_max_scale(img):
 
 
 def main():
-    file_dir = os.path.join("C:", os.sep, "data", "Formatted_datasets", "C3", "mr.pickle")
+    s = "C1"
+    file_dir = os.path.join("C:", os.sep, "data", "Formatted_datasets", s, "mr.pickle")
 
     with open(file_dir, 'rb') as file:
         imgs = pickle.load(file)["images"]
 
         fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
         fps = 15.0
-        out = cv2.VideoWriter("C3.mp4", fourcc, fps, (192, 192), 0)
+        out = cv2.VideoWriter(f"{s}.mp4", fourcc, fps, (192, 192), 0)
 
         current_frame = 0
         paused = False
         while current_frame < len(imgs):
             img = imgs[current_frame]
-            img = np.clip(img, a_min=0, a_max=255)
-
+            img = np.clip(img, a_min=0, a_max=255).astype(np.uint8)
+            img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, 0)
             # img = min_max_scale(img) if np.sum(img) != 0 else img
-            img = np.uint8(img)
+            # img = np.uint8(img)
             out.write(img)
 
             cv2.imshow("Frame", img)

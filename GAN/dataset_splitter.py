@@ -1,4 +1,4 @@
-from GAN.dataset import CustomDataset
+from dataset import CustomDataset
 import torch
 from torch.utils.data import Subset, ConcatDataset
 

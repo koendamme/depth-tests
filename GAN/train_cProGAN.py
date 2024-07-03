@@ -36,7 +36,7 @@ def train(subject):
     config = dict(
         batch_size=12,
         n_epochs=120,
-        desired_resolution=192,
+        desired_resolution=128,
         noise_vector_length=32,
         G_learning_rate=0.001,
         D_learning_rate=0.001,
@@ -48,7 +48,7 @@ def train(subject):
         G_layers = [512, 256, 128, 64, 32, 8]
     )
 
-    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject])
+    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "no-surr-processor"])
 
     data_root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
     dataset = CustomDataset(data_root, config["patient"])
@@ -74,7 +74,7 @@ def train(subject):
         D_layers=config["D_layers"],
         G_layers=config["G_layers"]
     )
-
+    artifact = wandb.Artifact('model', type='model')
     for i in range(config["n_epochs"]):
         start_time = time.time()
         D_loss, G_loss = cProGAN.train_single_epoch(train_dataloader, i, gp_lambda=config["GP_lambda"])
@@ -87,7 +87,6 @@ def train(subject):
             if not os.path.exists(model_save_path):
                 os.mkdir(model_save_path)
             torch.save(cProGAN.G.state_dict(), os.path.join(model_save_path, f"Epoch{i}.pth"))
-            artifact = wandb.Artifact('model', type='model')
             artifact.add_file(os.path.join(model_save_path, f"Epoch{i}.pth"))
             run.log_artifact(artifact)
 
@@ -107,7 +106,7 @@ def train(subject):
 
 
 def main():
-    subjects = ["B1", "B2", "B3", "C1", "C2", "C3"]
+    subjects = ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]
     for s in subjects:
         train(s)
 

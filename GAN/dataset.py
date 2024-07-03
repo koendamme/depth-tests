@@ -71,7 +71,7 @@ class PreiswerkDataset(Dataset):
 class VeenstraDataset(Dataset):
     def __init__(self):
         with open(os.path.join("..", "Veenstra", "new_A", "mri.json")) as f:
-            self.mri = json.load(f)
+            self.mri = torch.tensor(json.load(f)["mri_data"], dtype=torch.float32)
 
         with open(os.path.join("..", "Veenstra", "new_A", "us.json")) as f:
             self.us = json.load(f)
@@ -79,8 +79,7 @@ class VeenstraDataset(Dataset):
         self.resize = transforms.Resize(256)
 
     def visualize(self):
-        for row in self.mri:
-            img = row["img"]
+        for img in self.mri["mri_data"]:
             img = np.array(img)
             max, min = np.max(img), np.min(img)
             img = (img - min)/(max-min)
@@ -90,10 +89,9 @@ class VeenstraDataset(Dataset):
         cv2.destroyAllWindows()
 
     def __getitem__(self, idx):
-        img = torch.tensor(self.mri[idx]["img"])
-        scaled = scale_input(img, -1, 1)
+        scaled = scale_input(self.mri[idx], -1, 1)
         resized = self.resize(scaled.unsqueeze(0))
-        return resized, self.mri[idx]["timestamp"]
+        return resized
 
     def __len__(self):
         return self.mri.shape[0]
@@ -120,7 +118,7 @@ class CustomDataset(Dataset):
             surrogates = pickle.load(file)
             us_roi = self.settings["US"]["ROI"]
             self.us = np.float32(surrogates["us"])
-            self.us_wave = get_wave_updated(self.us, us_roi[0], us_roi[1], smooth=False)
+            self.us_wave = get_wave_updated(self.us, us_roi[0], us_roi[1], True)
             self.us_wave = torch.tensor(self.us_wave).float()
             self.us_wave = (self.us_wave - self.us_wave.mean()) / self.us_wave.std()
 

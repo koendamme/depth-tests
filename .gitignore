@@ -23,3 +23,5 @@ XD-GRASP
 heat_camera
 *.pickle
 *.mp4
+GAN/model_checkpoints
+notebooks/step and alpha.ipynb

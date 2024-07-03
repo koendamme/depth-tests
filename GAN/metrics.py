@@ -1,8 +1,5 @@
 import torch
 import torchvision
-from GAN.dataset import VeenstraDataset
-from GAN.utils import min_max_scale_tensor
-
 
 def normalized_mean_squared_error(fake_batch, real_batch):
     nom = torch.linalg.matrix_norm(fake_batch - real_batch[:, None, :, :]) ** 2
@@ -126,11 +123,7 @@ def pique(image_batch, n_blocks):
 
 
 def main():
-    data = VeenstraDataset()
-    mr = data[0][0]
-    # plt.imshow(mr.squeeze(), cmap="gray")
-    s = inception_score(mr.squeeze()[None])
-    print("Score: ", s)
+    pass
 
 
 if __name__ == '__main__':
