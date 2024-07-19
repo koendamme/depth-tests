@@ -3,12 +3,9 @@ import torch.nn.functional as F
 from GAN.models.us_feature_extractor import UsFeatureExtractor
 from tqdm import tqdm
 import math
-import matplotlib.pyplot as plt
 import numpy as np
-from GAN.metrics import normalized_mean_squared_error, ssim
-from GAN.models.ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
-import time
-from torch.optim import lr_scheduler
+from metrics import normalized_mean_squared_error, ssim
+from models.ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
 
 
 class Generator(torch.nn.Module):
