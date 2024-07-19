@@ -1,9 +1,9 @@
 import pickle
 import numpy as np
-from us.extract_us_wave import get_wave_updated
 import matplotlib.pyplot as plt
 import math
-from feature_extractors.surrogate_synchronizer import synchronize_signals
+from us.madore_wave_extraction import get_wave_from_us
+import os
 
 
 def find_synchronization_points(us_waveform, mri_waveform):
@@ -65,19 +65,24 @@ def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
 
 
 def main():
-    with open("mri/waveform_data.pickle", 'rb') as file:
-        mri_waveform = pickle.load(file)
+    subject = "B1"
+    path = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
 
-    heat_path = r'C:\Users\kjwdamme\Desktop\Rec-000017.seq'
-    us_path = r"C:\data\MRI-28-5\session1.pickle"
+    with open(os.path.join(path, "mr_wave.pickle"), "rb") as file:
+        mr_wave = pickle.load(file)["mri_waveform"]
 
-    surrogates = synchronize_signals(heat_path, us_path)
-    us_waveform = get_wave_updated(surrogates["us"], 500, 1000, smooth=True)
+    with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
+        us = pickle.load(file)["us"]
+        us_wave = get_wave_from_us(us.T, (0, 1000))
 
-    mr2us = synchronize(mri_waveform, us_waveform)
+    TR = 0.35560
+    us_freq, mri_freq = 50, 1 / TR
 
-    # with open("waveform_data.pickle", 'wb') as file:
-    #     pickle.dump(mr2us, file)
+    mr2us = synchronize(mr_wave, us_wave, us_freq, mri_freq)
+
+    with open(os.path.join(path, "mr2us_new.pickle"), 'wb') as file:
+        pickle.dump({"mr2us": mr2us}, file)
+        print(f"Successfully saved synchronization for subject {subject}")
 
 
 if __name__ == '__main__':

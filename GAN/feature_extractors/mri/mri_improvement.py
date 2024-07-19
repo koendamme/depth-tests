@@ -62,32 +62,42 @@ def get_grayscale_thresholds(img):
     return thresh
 
 
+def get_current_border_position(img, thresh, x):
+    _, binary_mask = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
+
+    kernel_size = 5
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel)
+
+    line = cleaned_mask[30:, x]
+
+    border = np.where(line != 0)[0][0] + 30
+
+    return border, cleaned_mask
+
+
 def get_waveform(path):
     with open(os.path.join(path, "mr.pickle"), "rb") as file:
         mr = np.array(pickle.load(file)["images"])
-        mr = np.clip(mr, a_min=0, a_max=255)
-        mr = np.uint8(mr)
+        # mr = np.clip(mr, a_min=0, a_max=255)
+        # mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
 
-    # thresh = get_grayscale_thresholds(mr[100])
-    thresh = 35
+        mr = np.clip(mr, a_min=0, a_max=255).astype(np.uint8)
+        mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
+        # mr = np.uint8(mr)
+
+    thresh = get_grayscale_thresholds(mr[100])
+    # thresh = 35
     x = get_line_position(mr[100])
 
     waveform = []
     for img in mr:
-        _, binary_mask = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
-
-        kernel_size = 5
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
-        cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel)
-
-        line = cleaned_mask[:, x]
-
-        border = np.where(line != 0)[0][0]
-        waveform.append(border * 1.9)
+        border, cleaned_mask = get_current_border_position(img, thresh, x)
+        
+        waveform.append(border*1.9)
         color_image = cv2.cvtColor(cleaned_mask, cv2.COLOR_GRAY2BGR)
         cv2.line(color_image, [x, 0], [x, color_image.shape[0]], [0, 0, 255], 2)
         cv2.circle(color_image, (x, border), 3, [255, 0, 0], 2)
-
         cv2.imshow("Frame", color_image)
         key = cv2.waitKey(20)
         if key == ord("q"):
@@ -99,24 +109,27 @@ def get_waveform(path):
 
 
 def main():
-    path = os.path.join("C:", os.sep, "data", "Formatted_datasets", "A2")
+    s = "B1"
+    path = os.path.join("C:", os.sep, "data", "Formatted_datasets", s)
     waveform, thresh, x = get_waveform(path)
 
-    with open(os.path.join(path, "mr_wave2.pickle"), "wb") as file:
-        pickle.dump({"mri_waveform": waveform}, file)
+    print(thresh, x)
+    plt.plot(waveform)
+    plt.show()
 
-    import json
+    # with open(os.path.join(path, "mr_wave_updated.pickle"), "wb") as file:
+    #     pickle.dump({"mri_waveform": waveform}, file)
 
-    # Step 1: Load the JSON file
-    with open(os.path.join(path, "settings.json"), 'r') as file:
-        data = json.load(file)
+    # # Step 1: Load the JSON file
+    # with open(os.path.join(path, "settings.json"), 'r') as file:
+    #     data = json.load(file)
 
-    # Step 2: Modify the data
-    data["MRI"]['Waveform parameters'] = {"Threshold": thresh, "x": x}
+    # # Step 2: Modify the data
+    # data["MRI"]['Updated_Waveform_parameters'] = {"Threshold": thresh, "x": x}
 
-    # Step 3: Save the data back to the JSON file, overwriting the existing file
-    with open(os.path.join(path, "settings.json"), 'w') as file:
-        json.dump(data, file, indent=4)
+    # # Step 3: Save the data back to the JSON file, overwriting the existing file
+    # with open(os.path.join(path, "settings.json"), 'w') as file:
+    #     json.dump(data, file, indent=4)
 
 
 

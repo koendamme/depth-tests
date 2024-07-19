@@ -2,22 +2,17 @@ import numpy as np
 from torch.utils.data import Dataset
 import torch
 import h5py
-from utils import min_max_scale_tensor, normalize_tensor, scale_input, scale_generator_output
+from utils import normalize_tensor, scale_input
 import matplotlib as mpl
 mpl.use('Qt5Agg')
 import matplotlib.pyplot as plt
-import glob
 from bs4 import BeautifulSoup
 import json
-import pydicom
-from datetime import datetime
 from torchvision import transforms
-from torchvision.transforms.functional import equalize
-from feature_extractors.us.extract_us_wave import get_wave_updated
+from feature_extractors.us.madore_wave_extraction import get_wave_from_us
 import os
 import cv2
 import pickle
-from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter1d
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -98,7 +93,7 @@ class VeenstraDataset(Dataset):
 
 
 class CustomDataset(Dataset):
-    def __init__(self, root_path, patient):
+    def __init__(self, root_path, patient, coil_normalizer=(0, 1), heat_normalizer=(0, 1), us_normalizer=(0, 1)):
         with open(os.path.join(root_path, patient, "settings.json")) as file:
             self.settings = json.load(file)
             self.TR = self.settings["MRI"]["TR"]
@@ -109,35 +104,41 @@ class CustomDataset(Dataset):
         with open(os.path.join(root_path, patient, "mr.pickle"), 'rb') as file:
             self.mr = pickle.load(file)["images"]
             self.mr = np.clip(self.mr, a_min=0, a_max=255).astype(np.uint8)
-            self.mr = cv2.addWeighted(self.mr, 2, np.zeros(self.mr.shape, self.mr.dtype), 0, 0)
+            self.mr = cv2.addWeighted(self.mr, 1.7, np.zeros(self.mr.shape, self.mr.dtype), 0, 0)
             self.mr = torch.from_numpy(self.mr).float()
             self.mr = self.mr * 2 / 255 - 1
-            self.mr[:, 135:, :] = -1
+            self.mr = self.mr[:, :128, 32:-32]
 
         with open(os.path.join(root_path, patient, "surrogates.pickle"), 'rb') as file:
             surrogates = pickle.load(file)
-            us_roi = self.settings["US"]["ROI"]
+            # us_roi = self.settings["US"]["ROI"]["0"], self.settings["US"]["ROI"]["1"]
+            # print(us_roi)
             self.us = np.float32(surrogates["us"])
-            self.us_wave = get_wave_updated(self.us, us_roi[0], us_roi[1], True)
-            self.us_wave = torch.tensor(self.us_wave).float()
-            self.us_wave = (self.us_wave - self.us_wave.mean()) / self.us_wave.std()
+            self.us_wave = get_wave_from_us(self.us.T, (0, 1000))
+            self.us_wave = torch.tensor(self.us_wave)
+            self.us_wave = (self.us_wave - us_normalizer[0]) / us_normalizer[1]
 
             self.heat = torch.tensor(np.float32(surrogates["heat"]))
-            self.heat = (self.heat - self.heat.mean()) / self.heat.std()
+            self.heat = (self.heat - heat_normalizer[0]) / heat_normalizer[1]
 
             self.coil = torch.tensor(np.float32(surrogates["coil"]))
-            self.coil = (self.coil - self.coil.mean()) / self.coil.std()
+            self.coil = (self.coil - coil_normalizer[0]) / coil_normalizer[1]
 
-        with open(os.path.join(root_path, patient, "mr2us.pickle"), 'rb') as file:
+        with open(os.path.join(root_path, patient, "mr2us_new.pickle"), 'rb') as file:
             self.mr2us = pickle.load(file)["mr2us"]
 
         with open(os.path.join(root_path, patient, "mr_wave.pickle"), 'rb') as file:
             self.mr_wave = torch.Tensor(pickle.load(file)["mri_waveform"])
             self.mr_wave = (self.mr_wave - self.mr_wave.mean()) / self.mr_wave.std() # normalize
-            self.mr_wave = gaussian_filter1d(self.mr_wave, .8) # smoothing
+            # self.mr_wave = gaussian_filter1d(self.mr_wave, .8) # smoothing
 
         with open(os.path.join(root_path, patient, "splits.pickle"), 'rb') as file:
             self.splits = pickle.load(file)
+
+    def set_normalizers(self, heat, us, coil):
+        self.heat_normalizer = heat
+        self.us_normalizer = us
+        self.coil_normalizer = coil
 
     def visualize(self):
         for img in self.mr:
@@ -147,13 +148,13 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         mr = self.mr[idx]
         mr2us = self.mr2us[idx]
-        us = self.us[mr2us-self.signals_between_mrs+1:mr2us+1, :]
+        # us = self.us[mr2us-self.signals_between_mrs+1:mr2us+1, self.us_roi[0]:self.us_roi[1]]
         heat = self.heat[mr2us-self.signals_between_mrs+1:mr2us+1]
         coil = self.coil[mr2us-self.signals_between_mrs+1:mr2us+1]
         us_wave = self.us_wave[mr2us-self.signals_between_mrs+1:mr2us+1]
         mr_wave = self.mr_wave[idx]
 
-        return {"mr": mr, "us": us, "heat": heat, "mr_wave": mr_wave, "us_wave": us_wave, "coil": coil}
+        return {"mr": mr, "heat": heat, "mr_wave": mr_wave, "us_wave": us_wave, "coil": coil}
 
     def __len__(self):
         return self.mr.shape[0]
@@ -161,8 +162,10 @@ class CustomDataset(Dataset):
 
 if __name__ == '__main__':
     root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
-    dataset = CustomDataset(root, "A2")
-    dataset.visualize()
+    dataset = CustomDataset(root, "B1")
+    print(dataset.us_wave)
+    plt.plot(dataset.us_wave)
+    plt.show()
 
 
 

@@ -25,3 +25,5 @@ heat_camera
 *.mp4
 GAN/model_checkpoints
 notebooks/step and alpha.ipynb
+*.png
+*.pth

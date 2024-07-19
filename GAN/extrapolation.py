@@ -1,11 +1,10 @@
 from GAN.dataset import PreiswerkDataset
 import torch
 from torch.utils.data import Subset, DataLoader
-from GAN.cProGAN import ConditionalProGAN
+from models.cProGAN import ConditionalProGAN
 import cv2
 from GAN.utils import scale_generator_output
 import numpy as np
-import time
 
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
