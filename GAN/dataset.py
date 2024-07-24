@@ -13,7 +13,7 @@ from feature_extractors.us.madore_wave_extraction import get_wave_from_us
 import os
 import cv2
 import pickle
-from scipy.ndimage import gaussian_filter1d
+from dataset_splitter import DatasetSplitter
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
@@ -113,16 +113,21 @@ class CustomDataset(Dataset):
             surrogates = pickle.load(file)
             # us_roi = self.settings["US"]["ROI"]["0"], self.settings["US"]["ROI"]["1"]
             # print(us_roi)
-            self.us = np.float32(surrogates["us"])
-            self.us_wave = get_wave_from_us(self.us.T, (0, 1000))
-            self.us_wave = torch.tensor(self.us_wave)
-            self.us_wave = (self.us_wave - us_normalizer[0]) / us_normalizer[1]
+            # self.us = np.float32(surrogates["us"])
+            # self.us_wave = get_wave_from_us(self.us.T, (0, 1000))
+            # self.us_wave = torch.tensor(self.us_wave)
+            # self.us_wave = (self.us_wave - us_normalizer[0]) / us_normalizer[1]
 
             self.heat = torch.tensor(np.float32(surrogates["heat"]))
             self.heat = (self.heat - heat_normalizer[0]) / heat_normalizer[1]
 
             self.coil = torch.tensor(np.float32(surrogates["coil"]))
             self.coil = (self.coil - coil_normalizer[0]) / coil_normalizer[1]
+
+        with open(os.path.join(root_path, patient, "us_wave_detrended.pickle"), "rb") as file:
+            self.us_wave = pickle.load(file)
+            self.us_wave = torch.tensor(np.float32(self.us_wave))
+            self.us_wave = (self.us_wave - us_normalizer[0]) / us_normalizer[1]
 
         with open(os.path.join(root_path, patient, "mr2us_new.pickle"), 'rb') as file:
             self.mr2us = pickle.load(file)["mr2us"]
@@ -162,10 +167,16 @@ class CustomDataset(Dataset):
 
 if __name__ == '__main__':
     root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
-    dataset = CustomDataset(root, "B1")
-    print(dataset.us_wave)
-    plt.plot(dataset.us_wave)
+    
+    dataset = CustomDataset(root, "C1")
+    # splitter = DatasetSplitter(dataset, train_fraction=1, val_fraction=0, test_fraction=0)
+
+    # db = splitter.train_subsets["Deep Breathing"]
+    
+    plt.plot(dataset.mr_wave)
+    # plt.ylim([-.5, .5])
     plt.show()
+    
 
 
 

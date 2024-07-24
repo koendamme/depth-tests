@@ -1,15 +1,9 @@
 import torch
 from dataset import CustomDataset
-from utils import denormalize_tensor, scale_generator_output, create_video
-from torch.utils.data import DataLoader, Subset
-import matplotlib.pyplot as plt
-from models.cProGAN import Generator, Discriminator, ConditionalProGAN
-from tqdm import tqdm
-from datetime import datetime
+from torch.utils.data import DataLoader
+from models.cProGAN import ConditionalProGAN
 import time
-import math
 import wandb
-from torchvision.utils import save_image
 import os
 from dataset_splitter import DatasetSplitter
 import numpy as np
@@ -67,7 +61,7 @@ def train(subject):
         G_layers=[256, 128, 64, 32, 16, 8]
     )
 
-    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "madore_us", "improved_sync"])
+    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "madore_us", "improved_sync", "detrended", "heat"])
 
     data_root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
     dataset = CustomDataset(data_root, config["patient"])
@@ -94,9 +88,9 @@ def train(subject):
         n_epochs=config["n_epochs"],
         D_layers=config["D_layers"],
         G_layers=config["G_layers"],
-        heat_length=dataset[0]["heat"].shape[0],
+        heat_length= 0, #dataset[0]["heat"].shape[0],
         coil_length=dataset[0]["coil"].shape[0],
-        us_length=dataset[0]["us_wave"].shape[0]
+        us_length=0 #dataset[0]["us_wave"].shape[0]
     )
     
     prog_epochs = [0, 0, 0, 10, 20, 30]

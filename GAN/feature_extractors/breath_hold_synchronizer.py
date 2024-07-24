@@ -48,10 +48,15 @@ def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
     if show_result:
         t_us = offset + us_idxs/us_freq
         t_mr = mr_idxs/mri_freq
+        mri_waveform = np.array(mri_waveform)
+        us_waveform = np.array(us_waveform)
 
-        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+        mri_waveform = (mri_waveform - mri_waveform.mean())/mri_waveform.std()
+        us_waveform = (us_waveform - us_waveform.mean())/us_waveform.std()
+
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, gridspec_kw={'hspace': 0})
         ax1.set_title("MRI")
-        ax1.plot(t_mr, mri_waveform)
+        ax1.plot(t_mr, -mri_waveform)
         ax2.set_title("US")
         ax2.plot(t_us, us_waveform)
         plt.show()
@@ -65,7 +70,7 @@ def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
 
 
 def main():
-    subject = "B1"
+    subject = "E3"
     path = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
 
     with open(os.path.join(path, "mr_wave.pickle"), "rb") as file:

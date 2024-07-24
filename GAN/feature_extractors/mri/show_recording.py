@@ -1,17 +1,11 @@
-import pydicom
-import glob
 import os
 import numpy as np
 import cv2
 import pickle
 
 
-def min_max_scale(img):
-    return (img - np.min(img)) / (np.max(img) - np.min(img))
-
-
 def main():
-    s = "C1"
+    s = "E3"
     file_dir = os.path.join("C:", os.sep, "data", "Formatted_datasets", s, "mr.pickle")
 
     with open(file_dir, 'rb') as file:
@@ -27,8 +21,6 @@ def main():
             img = imgs[current_frame]
             img = np.clip(img, a_min=0, a_max=255).astype(np.uint8)
             img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, 0)
-            # img = min_max_scale(img) if np.sum(img) != 0 else img
-            # img = np.uint8(img)
             out.write(img)
 
             cv2.imshow("Frame", img)
@@ -44,7 +36,7 @@ def main():
             elif key == ord('a'):
                 current_frame = max(current_frame - 1, 0)
 
-        # out.release()
+        out.release()
         cv2.destroyAllWindows()
 
 

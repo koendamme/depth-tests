@@ -1,5 +1,3 @@
-from feature_extractors.mri.extract_images_from_dicom import extract_images
-from feature_extractors.mri.extract_breathing_waveform import extract_waveform
 import matplotlib.pyplot as plt
 import pickle
 import os
@@ -8,7 +6,7 @@ from matplotlib.backend_bases import MouseButton
 
 def main():
     root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
-    subjects = ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]
+    subjects = ["D1", "D2", "D3", "E1", "E2", "E3"]
 
     for s in subjects:
         with open(os.path.join(root, s, "mr_wave.pickle"), 'rb') as f:

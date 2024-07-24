@@ -27,3 +27,4 @@ GAN/model_checkpoints
 notebooks/step and alpha.ipynb
 *.png
 *.pth
+*.xlsx

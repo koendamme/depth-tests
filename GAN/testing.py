@@ -10,6 +10,7 @@ from dataset_splitter import DatasetSplitter
 from torch.utils.data import DataLoader
 import cv2
 import matplotlib.pyplot as plt
+from utils import get_mean_std
 
 
 def extract_border(img, threshold, x, show=False):
@@ -27,17 +28,6 @@ def extract_border(img, threshold, x, show=False):
         color_image = cv2.cvtColor(cleaned_mask, cv2.COLOR_GRAY2BGR)
         cv2.circle(color_image, (x, y), 3, [255, 0, 0], 2)
     return y*1.9, color_image
-
-
-def get_mean_std(train_dataset):
-    loader = DataLoader(train_dataset, batch_size=len(train_dataset))
-    data = next(iter(loader))
-    
-    heat = data["heat"].mean(), data["heat"].std()
-    coil = data["coil"].mean(), data["coil"].std()
-    us = data["us_wave"].mean(), data["us_wave"].std()
-
-    return heat, coil, us
 
 
 def generate_fake_images(data, G, device):

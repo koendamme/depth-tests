@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from torch.utils.data import DataLoader
 
 
 def weights_init(m):
@@ -45,5 +46,16 @@ def create_video(fake_imgs, real_imgs):
         frames.append(f)
 
     return np.array(frames)
+
+
+def get_mean_std(train_dataset):
+    loader = DataLoader(train_dataset, batch_size=len(train_dataset))
+    data = next(iter(loader))
+    
+    heat = data["heat"].mean(), data["heat"].std()
+    coil = data["coil"].mean(), data["coil"].std()
+    us = data["us_wave"].mean(), data["us_wave"].std()
+
+    return heat, coil, us
 
 

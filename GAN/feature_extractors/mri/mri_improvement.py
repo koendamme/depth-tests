@@ -64,11 +64,9 @@ def get_grayscale_thresholds(img):
 
 def get_current_border_position(img, thresh, x):
     _, binary_mask = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
-
     kernel_size = 5
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
     cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel)
-
     line = cleaned_mask[30:, x]
 
     border = np.where(line != 0)[0][0] + 30
@@ -92,6 +90,7 @@ def get_waveform(path):
 
     waveform = []
     for img in mr:
+        print(img.shape)
         border, cleaned_mask = get_current_border_position(img, thresh, x)
         
         waveform.append(border*1.9)

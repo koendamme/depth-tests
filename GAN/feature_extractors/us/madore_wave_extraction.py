@@ -4,12 +4,12 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import hilbert
+from scipy.signal import hilbert, detrend, butter, lfilter
 from tqdm import tqdm
 import json
 
 
-def detrend(z, magnitude):
+def detrend_madore(z, magnitude):
     length = z.shape[0]
     window = 8*50
     m = np.zeros((3, length))
@@ -25,7 +25,7 @@ def detrend(z, magnitude):
 
     m_0 = np.median(m)
     C_lin = np.zeros(length)
-    for i in tqdm(range(1, length)):
+    for i in range(1, length):
         C_lin[i] = C_lin[i-1] + m_0
 
     return C_lin
@@ -72,45 +72,62 @@ def get_wave_from_us(us, roi):
     
 
 def main():
-    subject = "A3"
-    path = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
+    for pp in ["A", "B", "C"]:
+        for s in [1, 2, 3]:
+            subject = pp+str(s)
+            if subject == "A1":
+                continue
+            print(f"Detrending subject {subject}...")
+            path = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
 
-    with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
-        surrogates = pickle.load(file)
-        
-    us = np.array(surrogates["us"]).T
-    roi = (0, 1000)
-    
-    hilbert_us = hilbert(us, axis=0)
-    # hilbert_magnitude = np.abs(hilbert_us)
-    hilbert_phase = np.angle(hilbert_us)
-    z = extract_wave(hilbert_phase, roi)
+            with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
+                surrogates = pickle.load(file)
 
-    plt.plot(z)
-    plt.show()
+            with open(os.path.join(path, "splits.pickle"), "rb") as file:
+                splits = pickle.load(file)
 
-    # trend = detrend(z, hilbert_magnitude)
+            with open(os.path.join(path, "mr2us_new.pickle"), "rb") as file:
+                mr2us = pickle.load(file)["mr2us"]
 
-    # z_final = z
+            sb = mr2us[splits["Shallow Breathing"]["start"]-1], mr2us[splits["Shallow Breathing"]["end"]]
+            rb = mr2us[splits["Regular Breathing"]["start"]-1], mr2us[splits["Regular Breathing"]["end"]]
+            db = mr2us[splits["Deep Breathing"]["start"]-1], mr2us[splits["Deep Breathing"]["end"]]
+            dbh = mr2us[splits["Deep BH"]["start"]-1], mr2us[splits["Deep BH"]["end"]]
+            hbh = mr2us[splits["Half Exhale BH"]["start"]-1], mr2us[splits["Half Exhale BH"]["end"]]
+            febh = mr2us[splits["Full Exhale BH"]["start"]-1], mr2us[splits["Full Exhale BH"]["end"]]
 
-    # plt.plot(z_final)
-    # plt.show()
+            us = np.array(surrogates["us"]).T
+            roi = (0, 1000)
+            hilbert_us = hilbert(us, axis=0)
+            hilbert_phase = np.angle(hilbert_us)
+            hilbert_magnitude = np.abs(hilbert_us)
+            z = extract_wave(hilbert_phase, roi)
 
-    if prompt_user():
-        update_settings_file(path, roi)
-        surrogates["us_wave"] = z
-        with open(os.path.join(path, "surrogates_new.pickle"), "wb") as file:
-            pickle.dump(surrogates, file)
-    else:
-        print("Array not saved")
+            trend = np.zeros_like(z)
+            for w in [dbh, sb, hbh, rb, febh, db]:
+                z_w = z[w[0]:w[1]]
+                z_trend = detrend_madore(z_w, hilbert_magnitude[:, w[0]:w[1]])
+                trend[w[0]:w[1]] = z_trend + trend[w[0]-1]
+
+            # final_trend = trends[0]
+            # for i in range(1, len(trends)):
+            #     val = final_trend[-1]
+            #     new_trend = trends[i] + val
+            #     final_trend = np.concatenate([final_trend, new_trend])
+
+            detrended = z - trend
+
+            plt.figure()
+            plt.title("Detrended")
+            plt.plot(detrended - detrended.mean())
+            plt.ylim([-.5, .5])
+            plt.show()
+
+            plt.savefig(f"{subject}.png")
+
+            with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
+                pickle.dump(detrended, file)
 
 
 if __name__ == '__main__':
-    with open(os.path.join("C:", os.sep, "data", "Formatted_datasets", "A3", "surrogates_new.pickle"), "rb") as file:
-        surrs = pickle.load(file)
-        print(surrs.keys())
-
-        plt.plot(surrs["us_wave"])
-        plt.show()
-
-    # main()
+    main()

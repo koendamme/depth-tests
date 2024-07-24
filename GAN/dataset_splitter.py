@@ -1,4 +1,4 @@
-from dataset import CustomDataset
+# from dataset import CustomDataset
 import torch
 from torch.utils.data import Subset, ConcatDataset, DataLoader
 
@@ -46,18 +46,18 @@ class DatasetSplitter:
 
 
 
-if __name__ == '__main__':
-    mri_freq = 2.9
-    surrogate_freq = 50
+# if __name__ == '__main__':
+#     mri_freq = 2.9
+#     surrogate_freq = 50
 
-    signals_between_mrs = int(surrogate_freq//mri_freq)
+#     signals_between_mrs = int(surrogate_freq//mri_freq)
 
-    dataset = CustomDataset("C:\\data\\Formatted_datasets", "A2")
+#     dataset = CustomDataset("C:\\data\\Formatted_datasets", "A2")
 
-    splitter = DatasetSplitter(dataset, train_fraction=.8, val_fraction=.1, test_fraction=.1)
-    data = splitter.test_subsets["Regular Breathing"]
-    dataloader = DataLoader(data, batch_size=10, shuffle=False, pin_memory=True)
-    for batch in dataloader:
-        print(batch["mr"].shape)
+#     splitter = DatasetSplitter(dataset, train_fraction=.8, val_fraction=.1, test_fraction=.1)
+#     data = splitter.test_subsets["Regular Breathing"]
+#     dataloader = DataLoader(data, batch_size=10, shuffle=False, pin_memory=True)
+#     for batch in dataloader:
+#         print(batch["mr"].shape)
     # train = splitter.get_train_dataset()
     # print()

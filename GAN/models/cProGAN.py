@@ -46,8 +46,8 @@ class Generator(torch.nn.Module):
             ConvBlock(layers[4], layers[5], apply_pixelnorm=True)
         ])
 
-    def forward(self, x, mr_wave, us_wave, coil_wave, heat_wave, us_raw, step, alpha):
-        to_concat = [s for s in [mr_wave, us_wave, coil_wave, heat_wave] if s is not None]
+    def forward(self, x, us_wave, coil_wave, heat_wave, step, alpha):
+        to_concat = [s for s in [us_wave, coil_wave, heat_wave] if s is not None]
         concatenated_surrogates = torch.concatenate(to_concat, dim=1)
 
         surr_features = self.surrogate_processor(concatenated_surrogates)
@@ -158,14 +158,12 @@ class ConditionalProGAN(torch.nn.Module):
         running_D_loss, running_G_loss = 0, 0
         for data in tqdm(dataloader, desc=f"Epoch {current_epoch + 1}, step {step}, alpha {round(alpha, 2)}: ", total=len(dataloader)):
             mri_batch = data["mr"].to(self.device)
-            wave_batch = None
-            us_wave_batch = data["us_wave"].to(self.device)
+            us_wave_batch = None # data["us_wave"].to(self.device)
             coil_batch = data["coil"].to(self.device)
-            heat_batch = data["heat"].to(self.device)
-            us_raw_batch = None
+            heat_batch = None #data["heat"].to(self.device)
 
             noise_batch = torch.randn(mri_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-            fake = self.G(noise_batch, wave_batch, us_wave_batch, coil_batch, heat_batch, us_raw_batch, step, alpha)
+            fake = self.G(noise_batch, us_wave_batch, coil_batch, heat_batch, step, alpha)
             real_input = torch.nn.functional.adaptive_avg_pool2d(mri_batch, (4 * 2 ** step, 4 * 2 ** step))
             d_fake = self.D(fake.detach(), step, alpha)
             d_real = self.D(real_input[:, None], step, alpha)
@@ -209,14 +207,12 @@ class ConditionalProGAN(torch.nn.Module):
         all_ssim = []
         for data in dataloader:
             mr_batch = data["mr"].to(self.device)
-            wave_batch = None
-            us_wave_batch = data["us_wave"].to(self.device)
+            us_wave_batch = None #data["us_wave"].to(self.device)
             coil_batch = data["coil"].to(self.device)
-            heat_batch = data["heat"].to(self.device)
-            us_raw_batch = None
+            heat_batch = None #data["heat"].to(self.device)
 
             noise_batch = torch.randn(mr_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
-            fake = self.G(noise_batch, wave_batch, us_wave_batch, coil_batch, heat_batch, us_raw_batch, step, alpha)
+            fake = self.G(noise_batch, us_wave_batch, coil_batch, heat_batch, step, alpha)
             fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - step - 1), mode='nearest')
             nmse = normalized_mean_squared_error(fake_upscaled, mr_batch).detach().cpu().numpy().flatten()
             curr_ssim = ssim(fake_upscaled, mr_batch[:, None, :, :], self.device).detach().cpu().numpy().flatten()
