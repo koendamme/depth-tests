@@ -1,9 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib as mpl
-mpl.use('Qt5Agg')
-import matplotlib.pyplot as plt
-from feature_extractors.us.load_us_data import load_to_memory
 from scipy.ndimage import gaussian_filter1d
 
 
@@ -46,11 +42,12 @@ def main():
     # path = r"C:\data\MRI-28-5\session1.pickle"
     # c = get_wave(path, 200, 800)
     # data, _ = load_to_memory(path)
-    data, _ = load_to_memory(r"C:\data\A_raw\session3 (2 rerun)\us\session.pickle")
-    c = get_wave_updated(data, 300, 1000, smooth=True)
-
-    plt.plot(c)
-    plt.show()
+    # data, _ = load_to_memory(r"C:\data\E_raw\session3\us\session.pickle")
+    # c = get_wave_updated(data, 300, 700, smooth=True)
+    #
+    # plt.plot(c)
+    # plt.show()
+    pass
 
 
 if __name__ == '__main__':

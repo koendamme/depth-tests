@@ -1,13 +1,13 @@
 import numpy as np
-from feature_extractors.us.load_us_data import load_to_memory
-from feature_extractors.us.extract_us_wave import get_wave_updated
-from feature_extractors.depth.marker_tracker import tracking_pipline
+from us.load_us_data import load_to_memory
+from us.extract_us_wave import get_wave_updated
+from depth.marker_tracker import tracking_pipline
 import pickle
 import os
 from scipy.interpolate import interp1d
 from datetime import datetime
 import glob
-from feature_extractors.heat.waveform_from_csv import read_heat_waveform
+from heat.waveform_from_csv import read_heat_waveform
 import matplotlib as mpl
 mpl.use("Qt5Agg")
 import matplotlib.pyplot as plt
@@ -32,8 +32,8 @@ def synchronize_signals(heat_file_path, us_file_path, rgb_path):
     heat_timestamps, heat_data = read_heat_waveform(heat_file_path)
     us_timestamps, us_data = get_us(us_file_path)
     coil_timestamps, coil_data = get_coil_waveform(rgb_path)
-    # with open("tracked_coil_temp.pickle", "wb") as f:
-    #     pickle.dump({"ts": coil_timestamps, "coil": coil_data}, f)
+    with open("tracked_coil_temp.pickle", "wb") as f:
+        pickle.dump({"ts": coil_timestamps, "coil": coil_data}, f)
 
     # with open("tracked_coil_temp.pickle", "rb") as f:
     #     temp = pickle.load(f)
@@ -61,24 +61,34 @@ def synchronize_signals(heat_file_path, us_file_path, rgb_path):
 def main():
     root_raw = os.path.join("C:", os.sep, "data", "A_raw", "session3 (2 rerun)")
 
-    heat_path = os.path.join(root_raw, "heat", "raw_waveform.csv")
-    us_path = os.path.join(root_raw, "us", "session.pickle")
-    rgb_path = os.path.join(root_raw, "rgbd", "rgb")
-    save_path = "synchronized_surrogates.pickle"
+    heat_path = r"C:\data\D_raw\session1\heat\waveform.csv"
+    us_path = r"C:\data\D_raw\session1\us\session.pickle"
 
-    d = synchronize_signals(heat_path, us_path, rgb_path)
-    us_wave = get_wave_updated(d["us"], 300, 1000, smooth=True)
 
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True)
-    ax1.set_title("US")
-    ax1.plot(d["ts"], us_wave)
-    ax2.set_title("Heat")
-    ax2.plot(d["ts"], d["heat"])
-    ax3.set_title("Coil")
-    ax3.plot(d["ts"], d["coil"])
-    plt.show()
+    # with open("tracked_coil_temp.pickle", "rb") as f:
+    #     temp = pickle.load(f)
+    #     coil_timestamps, coil_data = temp["ts"], temp["coil"]
 
-    plt.show()
+    heat_timestamps, heat_data = read_heat_waveform(heat_path)
+    us_timestamps, us_data = get_us(us_path)
+
+    # print(datetime.fromtimestamp(coil_timestamps[0]))
+    print(datetime.fromtimestamp(heat_timestamps[0]))
+    print(datetime.fromtimestamp(us_timestamps[0]))
+
+    # d = synchronize_signals(heat_path, us_path, None)
+    # us_wave = get_wave_updated(d["us"], 300, 1000, smooth=True)
+
+    # fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True)
+    # ax1.set_title("US")
+    # ax1.plot(d["ts"], us_wave)
+    # ax2.set_title("Heat")
+    # ax2.plot(d["ts"], d["heat"])
+    # ax3.set_title("Coil")
+    # ax3.plot(d["ts"], d["coil"])
+    # plt.show()
+    #
+    # plt.show()
 
 
 if __name__ == '__main__':
