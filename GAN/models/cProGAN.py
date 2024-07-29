@@ -158,8 +158,8 @@ class ConditionalProGAN(torch.nn.Module):
         running_D_loss, running_G_loss = 0, 0
         for data in tqdm(dataloader, desc=f"Epoch {current_epoch + 1}, step {step}, alpha {round(alpha, 2)}: ", total=len(dataloader)):
             mri_batch = data["mr"].to(self.device)
-            us_wave_batch = None # data["us_wave"].to(self.device)
-            coil_batch = data["coil"].to(self.device)
+            us_wave_batch = data["us_wave"].to(self.device)
+            coil_batch =None # data["coil"].to(self.device)
             heat_batch = None #data["heat"].to(self.device)
 
             noise_batch = torch.randn(mri_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
@@ -207,8 +207,8 @@ class ConditionalProGAN(torch.nn.Module):
         all_ssim = []
         for data in dataloader:
             mr_batch = data["mr"].to(self.device)
-            us_wave_batch = None #data["us_wave"].to(self.device)
-            coil_batch = data["coil"].to(self.device)
+            us_wave_batch = data["us_wave"].to(self.device)
+            coil_batch = None #data["coil"].to(self.device)
             heat_batch = None #data["heat"].to(self.device)
 
             noise_batch = torch.randn(mr_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)

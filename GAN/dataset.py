@@ -168,12 +168,12 @@ class CustomDataset(Dataset):
 if __name__ == '__main__':
     root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
     
-    dataset = CustomDataset(root, "C1")
+    dataset = CustomDataset(root, "A2")
     # splitter = DatasetSplitter(dataset, train_fraction=1, val_fraction=0, test_fraction=0)
 
     # db = splitter.train_subsets["Deep Breathing"]
     
-    plt.plot(dataset.mr_wave)
+    plt.plot(dataset.us_wave)
     # plt.ylim([-.5, .5])
     plt.show()
     

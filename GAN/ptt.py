@@ -19,6 +19,14 @@ def main():
     peaks, _ = find_peaks(x, distance=20, prominence=.5)
     troughs, _ = find_peaks(-x, distance=20, prominence=.5)
 
+    shortest_length = min(peaks.shape[0], troughs.shape[0])
+
+    peaks = peaks[:shortest_length]
+    troughs = troughs[:shortest_length]
+
+    ptt = (x[peaks]/x[troughs]).mean()
+    print(ptt)
+
     plt.plot(x)
     # plt.plot(x_smoothed)
     plt.plot(peaks, x[peaks], "x")

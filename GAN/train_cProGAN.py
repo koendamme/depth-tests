@@ -61,7 +61,7 @@ def train(subject):
         G_layers=[256, 128, 64, 32, 16, 8]
     )
 
-    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "madore_us", "improved_sync", "detrended", "heat"])
+    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "madore_us", "improved_sync", "detrended", "us"])
 
     data_root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
     dataset = CustomDataset(data_root, config["patient"])
@@ -88,9 +88,9 @@ def train(subject):
         n_epochs=config["n_epochs"],
         D_layers=config["D_layers"],
         G_layers=config["G_layers"],
-        heat_length= 0, #dataset[0]["heat"].shape[0],
-        coil_length=dataset[0]["coil"].shape[0],
-        us_length=0 #dataset[0]["us_wave"].shape[0]
+        heat_length= 0, # dataset[0]["heat"].shape[0],
+        coil_length= 0, # dataset[0]["coil"].shape[0],
+        us_length=dataset[0]["us_wave"].shape[0]
     )
     
     prog_epochs = [0, 0, 0, 10, 20, 30]
@@ -124,9 +124,6 @@ def train(subject):
             del vids, ssim, nmse
             gc.collect()
 
-    artifact = wandb.Artifact(f"{run.name}_epoch{best_epoch}", type='best model')
-    artifact.add_file(f"C:\\dev\\depth-tests\\GAN\\best_models\\{run.name}.pth")
-    run.log_artifact(artifact)
     run.finish()
 
 
