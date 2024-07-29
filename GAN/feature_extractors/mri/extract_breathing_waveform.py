@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from feature_extractors.mri.extract_images_from_dicom import extract_images
+from extract_images_from_dicom import extract_images
 
 
 line_x, line_middlepoint_y = None, None

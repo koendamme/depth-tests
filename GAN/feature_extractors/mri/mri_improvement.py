@@ -74,18 +74,40 @@ def get_current_border_position(img, thresh, x):
     return border, cleaned_mask
 
 
+def get_waveform_from_raw_data(mr):
+    mr = np.clip(mr, a_min=0, a_max=255).astype(np.uint8)
+    mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
+    mr = mr[:, :128, 32:-32]
+
+    thresh = get_grayscale_thresholds(mr[100])
+    x = get_line_position(mr[100])
+
+    waveform = []
+    for img in mr:
+        border, cleaned_mask = get_current_border_position(img, thresh, x)
+
+        waveform.append(border * 1.9)
+        color_image = cv2.cvtColor(cleaned_mask, cv2.COLOR_GRAY2BGR)
+        cv2.line(color_image, [x, 0], [x, color_image.shape[0]], [0, 0, 255], 2)
+        cv2.circle(color_image, (x, border), 3, [255, 0, 0], 2)
+        cv2.imshow("Frame", color_image)
+        key = cv2.waitKey(20)
+        if key == ord("q"):
+            break
+
+    cv2.destroyAllWindows()
+
+    return waveform, thresh, x
+
+
 def get_waveform(path):
     with open(os.path.join(path, "mr.pickle"), "rb") as file:
         mr = np.array(pickle.load(file)["images"])
-        # mr = np.clip(mr, a_min=0, a_max=255)
-        # mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
-
         mr = np.clip(mr, a_min=0, a_max=255).astype(np.uint8)
         mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
-        # mr = np.uint8(mr)
+        mr = mr[:, :128, 32:-32]
 
     thresh = get_grayscale_thresholds(mr[100])
-    # thresh = 35
     x = get_line_position(mr[100])
 
     waveform = []

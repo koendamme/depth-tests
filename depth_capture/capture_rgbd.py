@@ -23,7 +23,7 @@ def main():
         # cv2.imwrite(os.path.join("..", "random_tests", "rgbd_test", "1024+640", "depth", f"frame_{i}_{t}.png"), depth)
         # cv2.imwrite(os.path.join("..", "random_tests", "rgbd_test", "1024+640", "rgb", f"frame_{i}_{t}.png"), rgb)
 
-        root_dir = os.path.join("C:", os.sep, "data", "C_raw", "session4", "rgbd")
+        root_dir = os.path.join("C:", os.sep, "data", "E_raw", "session3", "rgbd")
         # root_dir = os.path.join("C:", os.sep, "data", "test3", "rgbd")
         cv2.imwrite(os.path.join(root_dir, "depth", f"frame_{i}_{t}.png"), depth)
         cv2.imwrite(os.path.join(root_dir, "rgb", f"frame_{i}_{t}.png"), rgb)

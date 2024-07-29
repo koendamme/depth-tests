@@ -18,8 +18,7 @@ def read_heat_waveform(path):
 
 
 def main():
-    p = os.path.join("C:", os.sep, "data", "A_raw", "session3 (2 rerun)", "heat", "raw_waveform.csv")
-    t, d = read_heat_waveform(p)
+    t, d = read_heat_waveform("C:\data\D_raw\session1\heat\waveform2.csv")
     print()
 
 
