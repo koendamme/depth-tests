@@ -56,7 +56,7 @@ def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
 
         fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True, gridspec_kw={'hspace': 0})
         ax1.set_title("MRI")
-        ax1.plot(t_mr, -mri_waveform)
+        ax1.plot(t_mr, mri_waveform)
         ax2.set_title("US")
         ax2.plot(t_us, us_waveform)
         plt.show()
@@ -70,8 +70,8 @@ def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
 
 
 def main():
-    subject = "E3"
-    path = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
+    subject = "A1"
+    path = os.path.join("F:", os.sep, "Formatted_datasets", subject)
 
     with open(os.path.join(path, "mr_wave.pickle"), "rb") as file:
         mr_wave = pickle.load(file)["mri_waveform"]

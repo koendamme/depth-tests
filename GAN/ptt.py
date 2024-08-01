@@ -2,36 +2,48 @@ from dataset import CustomDataset
 import matplotlib.pyplot as plt
 import os
 from scipy.signal import find_peaks
-from scipy.ndimage import gaussian_filter1d
+import numpy as np
+import pandas as pd
 
 
 def main():
-    root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
-    
-    dataset = CustomDataset(root, "A2")
+    print("Hi")
+    root = os.path.join("F:", os.sep, "Formatted_datasets")
+    patterns = ["Shallow Breathing", "Regular Breathing", "Deep Breathing"]
 
-    pattern = "Deep Breathing"
-    start = dataset.splits[pattern]["start"]
-    end = dataset.splits[pattern]["end"]
+    final_df = None
+    for pp in ["A", "B", "C"]:
+        for session in [1, 2, 3]:
+            subject = pp + str(session)
+            print(subject)
 
-    x = dataset.mr_wave[start:end]
-    # x_smoothed = gaussian_filter1d(x, 1.2)
-    peaks, _ = find_peaks(x, distance=20, prominence=.5)
-    troughs, _ = find_peaks(-x, distance=20, prominence=.5)
+            df = pd.DataFrame(index=[subject+"ptt", subject+"ptt_std"], columns=patterns)
 
-    shortest_length = min(peaks.shape[0], troughs.shape[0])
+            dataset = CustomDataset(root, subject)
 
-    peaks = peaks[:shortest_length]
-    troughs = troughs[:shortest_length]
+            for pattern in patterns:
+                start = dataset.splits[pattern]["start"]
+                end = dataset.splits[pattern]["end"]
 
-    ptt = (x[peaks]/x[troughs]).mean()
-    print(ptt)
+                x = dataset.mr_wave[start:end]
+                peaks, _ = find_peaks(x, distance=5, prominence=5)
+                troughs, _ = find_peaks(-x, distance=5, prominence=5)
 
-    plt.plot(x)
-    # plt.plot(x_smoothed)
-    plt.plot(peaks, x[peaks], "x")
-    plt.plot(troughs, x[troughs], "x")
-    plt.show()
+                shortest_length = min(peaks.shape[0], troughs.shape[0])
+
+                peaks = peaks[:shortest_length]
+                troughs = troughs[:shortest_length]
+
+                ptt = (np.abs(x[peaks]-x[troughs])*1.9).numpy()
+                df.loc[subject+"ptt", pattern] = ptt.mean()
+                df.loc[subject+"ptt_std", pattern] = ptt.std()
+  
+            if final_df is None:
+                final_df = df
+            else:
+                final_df = pd.concat([final_df, df])
+
+    final_df.to_excel(os.path.join("F:", os.sep, "results", "ppt.xlsx"))
         
 
 

@@ -134,7 +134,7 @@ class CustomDataset(Dataset):
 
         with open(os.path.join(root_path, patient, "mr_wave.pickle"), 'rb') as file:
             self.mr_wave = torch.Tensor(pickle.load(file)["mri_waveform"])
-            self.mr_wave = (self.mr_wave - self.mr_wave.mean()) / self.mr_wave.std() # normalize
+            # self.mr_wave = (self.mr_wave - self.mr_wave.mean()) / self.mr_wave.std() # normalize
             # self.mr_wave = gaussian_filter1d(self.mr_wave, .8) # smoothing
 
         with open(os.path.join(root_path, patient, "splits.pickle"), 'rb') as file:
@@ -166,17 +166,23 @@ class CustomDataset(Dataset):
 
 
 if __name__ == '__main__':
-    root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
+    root = os.path.join("F:", os.sep, "Formatted_datasets")
     
-    dataset = CustomDataset(root, "A2")
-    # splitter = DatasetSplitter(dataset, train_fraction=1, val_fraction=0, test_fraction=0)
+    dataset = CustomDataset(root, "A1")
+    print(dataset.splits)
+    
+    start = dataset.splits["Shallow Breathing"]["start"]
+    end = dataset.splits["Shallow Breathing"]["end"]
 
-    # db = splitter.train_subsets["Deep Breathing"]
-    
-    plt.plot(dataset.us_wave)
-    # plt.ylim([-.5, .5])
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols = 1, sharex=True)
+
+    ax1.plot(dataset.coil[dataset.mr2us[start]:dataset.mr2us[end]])
+    ax2.plot(dataset.us_wave[dataset.mr2us[start]:dataset.mr2us[end]])
+    ax3.plot(dataset.mr_wave[start:end])
     plt.show()
     
+
+
 
 
 

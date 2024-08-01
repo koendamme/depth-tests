@@ -107,8 +107,10 @@ def get_waveform(path):
         mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
         mr = mr[:, :128, 32:-32]
 
-    thresh = get_grayscale_thresholds(mr[100])
-    x = get_line_position(mr[100])
+    # thresh = get_grayscale_thresholds(mr[100])
+    # x = get_line_position(mr[100])
+    thresh = 70
+    x = 51
 
     waveform = []
     for img in mr:
@@ -130,8 +132,8 @@ def get_waveform(path):
 
 
 def main():
-    s = "B1"
-    path = os.path.join("C:", os.sep, "data", "Formatted_datasets", s)
+    s = "A1"
+    path = os.path.join("F:", os.sep, "Formatted_datasets", s)
     waveform, thresh, x = get_waveform(path)
 
     print(thresh, x)
