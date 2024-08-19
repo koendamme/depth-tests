@@ -9,11 +9,9 @@ import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 import json
 from torchvision import transforms
-from feature_extractors.us.madore_wave_extraction import get_wave_from_us
 import os
 import cv2
 import pickle
-from dataset_splitter import DatasetSplitter
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 
@@ -166,19 +164,21 @@ class CustomDataset(Dataset):
 
 
 if __name__ == '__main__':
-    root = os.path.join("F:", os.sep, "Formatted_datasets")
+    # root = os.path.join("F:", os.sep, "Formatted_datasets")
+    root = "/Volumes/T9/Formatted_datasets"
     
-    dataset = CustomDataset(root, "A1")
-    print(dataset.splits)
-    
-    start = dataset.splits["Shallow Breathing"]["start"]
-    end = dataset.splits["Shallow Breathing"]["end"]
+    fig, axs = plt.subplots(nrows=9, ncols=1)
+    i=0
+    for pp in ["A", "B", "C"]:
+        print(pp)
+        for s in [1, 2, 3]:
+            subject = pp+str(s)
+            dataset = CustomDataset(root, subject)
+            axs[i].plot(dataset.mr_wave)
+            axs[i].set_title(subject)
+            i+=1
 
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols = 1, sharex=True)
 
-    ax1.plot(dataset.coil[dataset.mr2us[start]:dataset.mr2us[end]])
-    ax2.plot(dataset.us_wave[dataset.mr2us[start]:dataset.mr2us[end]])
-    ax3.plot(dataset.mr_wave[start:end])
     plt.show()
     
 

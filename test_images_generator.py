@@ -1,13 +1,11 @@
 import torch
-import wandb
-import json
 import os
-from dataset import CustomDataset
-from dataset_splitter import DatasetSplitter
-from models.cProGAN import Generator
+from GAN.dataset import CustomDataset
+from GAN.dataset_splitter import DatasetSplitter
+from GAN.models.cProGAN import Generator
 from torch.utils.data import DataLoader
 import numpy as np
-from utils import get_mean_std
+from GAN.utils import get_mean_std
 import cv2
 
 
@@ -139,4 +137,16 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    G = Generator(
+        heat_length=14,
+        coil_length=14,  # dataset[0]["coil"].shape[0],
+        us_length=14,  # dataset[0]["us_wave"].shape[0],
+        layers=[256, 128, 64, 32, 16, 8],
+    )
+
+    model_parameters = filter(lambda p: p.requires_grad, G.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
+    print(params)
+
+
+    # main()

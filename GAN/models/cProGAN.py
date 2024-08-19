@@ -4,9 +4,9 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 import math
 import numpy as np
-from metrics import normalized_mean_squared_error, ssim
-from models.ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
-from models.us_feature_extractor import UsFeatureExtractor
+from GAN.metrics import normalized_mean_squared_error, ssim
+from GAN.models.ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
+from GAN.models.us_feature_extractor import UsFeatureExtractor
 
 
 class Generator(torch.nn.Module):

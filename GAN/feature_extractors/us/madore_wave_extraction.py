@@ -72,61 +72,51 @@ def get_wave_from_us(us, roi):
     
 
 def main():
-    for pp in ["A", "B", "C"]:
-        for s in [1, 2, 3]:
-            subject = pp+str(s)
-            if subject == "A1":
-                continue
-            print(f"Detrending subject {subject}...")
-            path = os.path.join("C:", os.sep, "data", "Formatted_datasets", subject)
+        subject = "A1"
+        print(f"Detrending subject {subject}...")
+        path = os.path.join("/Volumes/T9/Formatted_datasets", subject)
 
-            with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
-                surrogates = pickle.load(file)
+        with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
+            surrogates = pickle.load(file)
 
-            with open(os.path.join(path, "splits.pickle"), "rb") as file:
-                splits = pickle.load(file)
+        with open(os.path.join(path, "splits.pickle"), "rb") as file:
+            splits = pickle.load(file)
 
-            with open(os.path.join(path, "mr2us_new.pickle"), "rb") as file:
-                mr2us = pickle.load(file)["mr2us"]
+        with open(os.path.join(path, "mr2us_new.pickle"), "rb") as file:
+            mr2us = pickle.load(file)["mr2us"]
 
-            sb = mr2us[splits["Shallow Breathing"]["start"]-1], mr2us[splits["Shallow Breathing"]["end"]]
-            rb = mr2us[splits["Regular Breathing"]["start"]-1], mr2us[splits["Regular Breathing"]["end"]]
-            db = mr2us[splits["Deep Breathing"]["start"]-1], mr2us[splits["Deep Breathing"]["end"]]
-            dbh = mr2us[splits["Deep BH"]["start"]-1], mr2us[splits["Deep BH"]["end"]]
-            hbh = mr2us[splits["Half Exhale BH"]["start"]-1], mr2us[splits["Half Exhale BH"]["end"]]
-            febh = mr2us[splits["Full Exhale BH"]["start"]-1], mr2us[splits["Full Exhale BH"]["end"]]
+        sb = mr2us[splits["Shallow Breathing"]["start"]-1], mr2us[splits["Shallow Breathing"]["end"]]
+        rb = mr2us[splits["Regular Breathing"]["start"]-1], mr2us[splits["Regular Breathing"]["end"]]
+        db = mr2us[splits["Deep Breathing"]["start"]-1], mr2us[splits["Deep Breathing"]["end"]]
+        dbh = mr2us[splits["Deep BH"]["start"]-1], mr2us[splits["Deep BH"]["end"]]
+        hbh = mr2us[splits["Half Exhale BH"]["start"]-1], mr2us[splits["Half Exhale BH"]["end"]]
+        febh = mr2us[splits["Full Exhale BH"]["start"]-1], mr2us[splits["Full Exhale BH"]["end"]]
 
-            us = np.array(surrogates["us"]).T
-            roi = (0, 1000)
-            hilbert_us = hilbert(us, axis=0)
-            hilbert_phase = np.angle(hilbert_us)
-            hilbert_magnitude = np.abs(hilbert_us)
-            z = extract_wave(hilbert_phase, roi)
+        us = np.array(surrogates["us"]).T
+        roi = (0, 1000)
+        hilbert_us = hilbert(us, axis=0)
+        hilbert_phase = np.angle(hilbert_us)
+        hilbert_magnitude = np.abs(hilbert_us)
+        z = extract_wave(hilbert_phase, roi)
 
-            trend = np.zeros_like(z)
-            for w in [dbh, sb, hbh, rb, febh, db]:
-                z_w = z[w[0]:w[1]]
-                z_trend = detrend_madore(z_w, hilbert_magnitude[:, w[0]:w[1]])
-                trend[w[0]:w[1]] = z_trend + trend[w[0]-1]
+        trend = np.zeros_like(z)
+        for w in [dbh, sb, hbh, rb, febh, db]:
+            z_w = z[w[0]:w[1]]
+            z_trend = detrend_madore(z_w, hilbert_magnitude[:, w[0]:w[1]])
+            trend[w[0]:w[1]] = z_trend + trend[w[0]-1]
 
-            # final_trend = trends[0]
-            # for i in range(1, len(trends)):
-            #     val = final_trend[-1]
-            #     new_trend = trends[i] + val
-            #     final_trend = np.concatenate([final_trend, new_trend])
+        detrended = z - trend
 
-            detrended = z - trend
+        plt.figure()
+        plt.title("Detrended")
+        plt.plot(detrended - detrended.mean())
+        plt.ylim([-.5, .5])
+        plt.show()
 
-            plt.figure()
-            plt.title("Detrended")
-            plt.plot(detrended - detrended.mean())
-            plt.ylim([-.5, .5])
-            plt.show()
+        plt.savefig(f"{subject}.png")
 
-            plt.savefig(f"{subject}.png")
-
-            with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
-                pickle.dump(detrended, file)
+        with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
+            pickle.dump(detrended, file)
 
 
 if __name__ == '__main__':

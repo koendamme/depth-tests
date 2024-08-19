@@ -1,4 +1,4 @@
-from dataset import CustomDataset
+from GAN.dataset import CustomDataset
 import matplotlib.pyplot as plt
 import os
 from scipy.signal import find_peaks

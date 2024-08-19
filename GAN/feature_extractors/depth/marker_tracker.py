@@ -117,7 +117,7 @@ def get_line_position(img_path, roi):
 def get_grayscale_thresholds(img_path, roi):
     img = cv2.imread(img_path)
     img = img[roi[0][1]:roi[1][1], roi[0][0]:roi[1][0]]
-    img = cv2.resize(img, None, fx=6, fy=6, interpolation=cv2.INTER_CUBIC)
+    img = cv2.resize(img, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
 
     cv2.namedWindow("Find thresholds")
     cv2.createTrackbar("Lower", "Find thresholds", 0, 255, nothing)

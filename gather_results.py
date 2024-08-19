@@ -3,7 +3,7 @@ import os
 import json
 import glob
 import cv2
-from feature_extractors.mri.mri_improvement import get_current_border_position
+from GAN.feature_extractors.mri.mri_improvement import get_current_border_position
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 from sklearn.metrics import r2_score

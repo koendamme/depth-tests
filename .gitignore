@@ -28,3 +28,4 @@ notebooks/step and alpha.ipynb
 *.png
 *.pth
 *.xlsx
+.DS_Store
