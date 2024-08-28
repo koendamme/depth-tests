@@ -72,7 +72,7 @@ def get_wave_from_us(us, roi):
     
 
 def main():
-        subject = "A1"
+        subject = "G2"
         print(f"Detrending subject {subject}...")
         path = os.path.join("/Volumes/T9/Formatted_datasets", subject)
 
@@ -99,6 +99,9 @@ def main():
         hilbert_magnitude = np.abs(hilbert_us)
         z = extract_wave(hilbert_phase, roi)
 
+        plt.plot(z)
+        plt.show()
+
         trend = np.zeros_like(z)
         for w in [dbh, sb, hbh, rb, febh, db]:
             z_w = z[w[0]:w[1]]
@@ -113,10 +116,10 @@ def main():
         plt.ylim([-.5, .5])
         plt.show()
 
-        plt.savefig(f"{subject}.png")
+        # plt.savefig(f"{subject}.png")
 
-        with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
-            pickle.dump(detrended, file)
+        # with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
+        #     pickle.dump(detrended, file)
 
 
 if __name__ == '__main__':

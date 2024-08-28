@@ -69,18 +69,25 @@ def get_current_border_position(img, thresh, x):
     cleaned_mask = cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel)
     line = cleaned_mask[30:, x]
 
-    border = np.where(line != 0)[0][0] + 30
+    border = np.where(line != 0)[0] #[0] + 30
+
+    if len(border) != 0:
+        border = border[0] + 30
+    else:
+        print("No border found..")
+        border = 0
 
     return border, cleaned_mask
 
 
-def get_waveform_from_raw_data(mr):
+def get_waveform_from_raw_data(mr, thresh=None, x=None):
     mr = np.clip(mr, a_min=0, a_max=255).astype(np.uint8)
     mr = cv2.addWeighted(mr, 1.7, np.zeros(mr.shape, mr.dtype), 0, 0)
     mr = mr[:, :128, 32:-32]
 
-    thresh = get_grayscale_thresholds(mr[100])
-    x = get_line_position(mr[100])
+    if thresh is None and x is None:
+        thresh = get_grayscale_thresholds(mr[100])
+        x = get_line_position(mr[100])
 
     waveform = []
     for img in mr:
@@ -88,6 +95,8 @@ def get_waveform_from_raw_data(mr):
 
         waveform.append(border * 1.9)
         color_image = cv2.cvtColor(cleaned_mask, cv2.COLOR_GRAY2BGR)
+        if border == 0:
+            print()
         cv2.line(color_image, [x, 0], [x, color_image.shape[0]], [0, 0, 255], 2)
         cv2.circle(color_image, (x, border), 3, [255, 0, 0], 2)
         cv2.imshow("Frame", color_image)

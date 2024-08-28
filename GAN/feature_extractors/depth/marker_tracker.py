@@ -28,21 +28,21 @@ def track_marker(root, grayscale_threshold, x_line, roi, show=False):
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gray = cv2.resize(gray, None, fx=6, fy=6, interpolation=cv2.INTER_LINEAR)
+        # img = cv2.resize(img, None, fx=6, fy=6, interpolation=cv2.INTER_LINEAR)
         _, mask = cv2.threshold(gray, grayscale_threshold[0], grayscale_threshold[1], cv2.THRESH_BINARY)
         # red_mask = np.zeros_like(img)
         # red_mask[:, :, 2] = mask
-        #
+        
         # overlay = cv2.addWeighted(img, .7, red_mask, .3, 0)
 
         intersection = np.where(mask[:, x_line] != 0)[0][0]
         waveform.append(intersection)
 
-        # if show:
-        #     cv2.line(overlay, [x_line, 0], [x_line, overlay.shape[0]], [255, 0, 0], 2)
-        #     cv2.circle(overlay, [x_line, intersection], 2, [0, 255, 0], 2)
-        #     cv2.imshow("image", overlay)
-        #     cv2.imwrite("coil.png", overlay)
-        #     cv2.waitKey(1)
+        # cv2.line(overlay, [x_line, 0], [x_line, overlay.shape[0]], [255, 0, 0], 2)
+        # cv2.circle(overlay, [x_line, intersection], 2, [0, 255, 0], 2)
+        # cv2.imshow("image", overlay)
+        # cv2.imwrite("coil.png", overlay)
+        # cv2.waitKey(0)
 
     # with open("tracked_coil.pickle", "wb") as f:
     #     pickle.dump(waveform, f)
@@ -160,9 +160,7 @@ def tracking_pipline(root):
 
 
 def main():
-    wave = tracking_pipline(os.path.join("C:", os.sep, "data", "E_raw", "session1", "rgbd", "rgb"))
-    plt.plot(wave)
-    plt.show()
+    wave = tracking_pipline("/Volumes/T9/F_raw/session1/rgbd/rgb")
 
 
 if __name__ == '__main__':

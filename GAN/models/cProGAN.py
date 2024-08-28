@@ -4,9 +4,15 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 import math
 import numpy as np
-from GAN.metrics import normalized_mean_squared_error, ssim
-from GAN.models.ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
-from GAN.models.us_feature_extractor import UsFeatureExtractor
+from skimage.metrics import structural_similarity as ssim
+from ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
+from us_feature_extractor import UsFeatureExtractor
+
+def normalized_mean_squared_error(fake_batch, real_batch):
+    nom = torch.linalg.matrix_norm(fake_batch - real_batch[:, None, :, :]) ** 2
+    denom = torch.linalg.matrix_norm(real_batch) ** 2
+    o = nom.squeeze()/denom
+    return o
 
 
 class Generator(torch.nn.Module):
@@ -280,8 +286,78 @@ class ConditionalProGAN(torch.nn.Module):
         return min(alpha, 1)
 
 
+def gen_params():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    D_layers=[8, 16, 32, 64, 128, 256]
+    G_layers=[256, 128, 64, 32, 16, 8]
+    G = Generator(17, 17, 17, G_layers).to(device)
+
+    # curr = G.layers[0]
+
+    # for name, component in curr.named_modules():
+    #     if name:
+    #         n = sum(p.numel() for p in component.parameters() if p.requires_grad)
+    #         print(name, n)
+
+    total = 0
+    for i in range(1, 6):
+        layer = G.layers[i]
+
+        for name, component in layer.named_modules():
+            if name and (name.endswith("1") or name.endswith("2")):
+                n = sum(p.numel() for p in component.parameters() if p.requires_grad)
+                total+=n
+                print(i, name, n)
+
+            
+        print("---------------")
+
+    to_gray = sum(p.numel() for p in G.togray_layers[5].parameters() if p.requires_grad)
+    
+    total+=to_gray
+    print(to_gray)
+    print("-------")
+    print(f"Total: {total}")
+
+    # for i, layer in enumerate(G.layers):
+    #     for m in layer.named_modules():
+    #         n = sum(p.numel() for p in m.parameters() if p.requires_grad)
+    #         print(f"{i}: {n}")
+    #     print("---------------")
+
+
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    D_layers=[8, 16, 32, 64, 128, 256]
+    D = Discriminator(D_layers).to(device)
+    total = 0
+    
+    from_gray_params = sum(p.numel() for p in D.fromgray_layers[0].parameters() if p.requires_grad)
+    total+=from_gray_params
+    print(f"From gray params: {from_gray_params}")
+    print("----")
+        
+    for i in range(5):
+        layer = D.layers[i]
+
+        for name, component in layer.named_modules():
+            if name and (name.endswith("1") or name.endswith("2")):
+                n = sum(p.numel() for p in component.parameters() if p.requires_grad)
+                total+=n
+                print(i, name, n)
+        
+        print("-----")
+    
+    for name, component in D.layers[-1].named_modules():
+        if name and not name.endswith("conv"):
+            n = sum(p.numel() for p in component.parameters() if p.requires_grad)
+            total+=n
+            print(5, name, n)
+
+    print("------")
+    
+    print(total)
+    
 
 
 if __name__ == '__main__':

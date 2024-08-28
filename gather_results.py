@@ -80,4 +80,21 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    model = "coil_model"
+    breathing_patterns = ["Deep Breathing", "Shallow Breathing", "Regular Breathing", "Half Exhale BH", "Full Exhale BH", "Deep BH"]
+    metrics = ["MAE", "MAE_std","R2", "SSIM", "SSIM_std", "PIQUE", "PIQUE_std"]
+    subject = "A1"
+    for pattern in breathing_patterns:
+        image_paths = glob.glob(os.path.join("/Volumes/T9/results", model, subject, pattern, "*.png"))
+        
+        fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+        fps = 15.0
+        out = cv2.VideoWriter(f"{pattern}.mp4", fourcc, fps, (256, 128))
+        for path in image_paths:
+            img = cv2.imread(path)
+            print(img.shape)
+            out.write(img)
+
+        out.release()
+
+    # main()

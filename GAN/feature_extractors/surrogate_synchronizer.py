@@ -32,6 +32,7 @@ def synchronize_signals(heat_file_path, us_file_path, rgb_path):
     heat_timestamps, heat_data = read_heat_waveform(heat_file_path)
     us_timestamps, us_data = get_us(us_file_path)
     coil_timestamps, coil_data = get_coil_waveform(rgb_path)
+    
     with open("tracked_coil_temp.pickle", "wb") as f:
         pickle.dump({"ts": coil_timestamps, "coil": coil_data}, f)
 

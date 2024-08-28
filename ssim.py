@@ -96,7 +96,16 @@ def create_figure():
         ax1.plot(window_sizes, results[model]["Breathing"], label=models[i])
         ax2.plot(window_sizes, results[model]["Holding"], label=models[i])
 
-    fig.suptitle("Structural Similarity Index Measure")
+    ax1.set_ylabel('SSIM')
+
+    # Hide individual x-axis labels
+    ax1.set_xlabel("Window size")
+    ax2.set_xlabel("Window size")
+
+    # Add a single x-axis label
+    # fig.text(0.535, 0.01, 'Window size', ha='center', va='center')
+
+    # fig.suptitle("Structural Similarity Index Measure")
     plt.tight_layout()
     plt.legend(loc="lower right")
     plt.savefig("ssim.png")
@@ -130,4 +139,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    create_figure()
