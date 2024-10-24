@@ -21,7 +21,6 @@ def get_mean_std(train_dataset):
     return heat, coil, us
 
 
-
 def eval(cProGAN, val_patterns, val_loaders, step, alpha):
     vids = []
     ssim_res, nmse_res = {}, {}
@@ -61,7 +60,7 @@ def train(subject):
         G_layers=[256, 128, 64, 32, 16, 8]
     )
 
-    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "madore_us", "improved_sync", "detrended", "heat"])
+    run = wandb.init(project=f"CustomData-cProGAN-All_Surrogates", config=config, tags=[subject, "madore_us", "improved_sync", "detrended", "us"])
 
     data_root = os.path.join("F:", os.sep, "Formatted_datasets")
     dataset = CustomDataset(data_root, config["patient"])
@@ -88,9 +87,9 @@ def train(subject):
         n_epochs=config["n_epochs"],
         D_layers=config["D_layers"],
         G_layers=config["G_layers"],
-        heat_length=dataset[0]["heat"].shape[0],
+        heat_length=0, #,dataset[0]["heat"].shape[0],
         coil_length=0, #dataset[0]["coil"].shape[0],
-        us_length=0 #dataset[0]["us_wave"].shape[0]
+        us_length=dataset[0]["us_wave"].shape[0]
     )
     
     prog_epochs = [0, 0, 0, 10, 20, 30]
@@ -128,11 +127,10 @@ def train(subject):
 
 
 def main():
-    # subjects = ["A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"]
-    subjects = ["A1"]
+    subjects = ["D1", "D2", "D3", "E1", "E2", "E3", "F1", "F3", "F4", "G2", "G3", "G4"]
     for s in subjects:
         train(s)
 
-
+ 
 if __name__ == '__main__':
     main()

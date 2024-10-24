@@ -8,6 +8,18 @@ combined_runs = {
     "C1": "volcanic-darkness-216",
     "C2": "major-sky-217",
     "C3": "helpful-flower-218",
+    "D1": "zany-breeze-266",
+    "D2": "jolly-capybara-267",
+    "D3": "dazzling-totem-268",
+    "E1": "devoted-meadow-269",
+    "E2": "rural-sound-270",
+    "E3": "fanciful-armadillo-271",
+    "F1": "woven-snow-260",
+    "F3": "lyric-river-261",
+    "F4": "bright-sea-262",
+    "G2": "dauntless-valley-263",
+    "G3": "gallant-glitter-264",
+    "G4": "treasured-thunder-265"
 }
 
 # Only heat model runs
@@ -20,7 +32,19 @@ heat_runs = {
     "B3": "proud-puddle-229",
     "C1": "fresh-snow-230",
     "C2": "driven-durian-231",
-    "C3": "blooming-frost-232"  
+    "C3": "blooming-frost-232",
+    "D1": "sparkling-elevator-284",
+    "D2": "effortless-star-285",
+    "D3": "comfy-planet-286",
+    "E1": "pleasant-meadow-287",
+    "E2": "smooth-forest-288",
+    "E3": "earthy-resonance-289",
+    "F1": "golden-field-290",
+    "F3": "helpful-brook-291",
+    "F4": "balmy-energy-292",
+    "G2": "rose-paper-293",
+    "G3": "skilled-energy-294",
+    "G4": "ruby-pyramid-295"
 }
 
 # Only coil model runs
@@ -33,7 +57,19 @@ coil_runs = {
     "B3": "fiery-tree-237",
     "C1": "firm-dawn-238",
     "C2": "peachy-shadow-239",
-    "C3": "vague-paper-240"
+    "C3": "vague-paper-240",
+    "D1": "frosty-bird-272",
+    "D2": "lilac-lion-273",
+    "D3": "prime-sponge-274",
+    "E1": "ruby-fog-275",
+    "E2": "sunny-thunder-276",
+    "E3": "likely-bird-277",
+    "F1": "major-puddle-278",
+    "F3": "desert-sun-279",
+    "F4": "prime-firefly-280",
+    "G2": "helpful-star-281",
+    "G3": "swept-wave-282",
+    "G4": "bright-brook-283"
 }
 
 # Only us model runs
@@ -46,5 +82,17 @@ us_runs = {
     "B3": "jolly-salad-246",
     "C1": "toasty-bird-247",
     "C2": "sleek-microwave-248",
-    "C3": "dutiful-dawn-249"
+    "C3": "dutiful-dawn-249",
+    "D1": "golden-pine-296",
+    "D2": "astral-haze-297",
+    "D3": "vital-forest-298",
+    "E1": "ethereal-wave-299",
+    "E2": "rural-pine-300",
+    "E3": "legendary-smoke-301",
+    "F1": "balmy-lake-302",
+    "F3": "avid-durian-303",
+    "F4": "desert-feather-304",
+    "G2": "lucky-totem-305",
+    "G3": "glowing-snowball-306",
+    "G4": "electric-silence-307"
 }

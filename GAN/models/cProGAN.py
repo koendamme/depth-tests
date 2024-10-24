@@ -5,8 +5,7 @@ from tqdm import tqdm
 import math
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
-from ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
-from us_feature_extractor import UsFeatureExtractor
+from GAN.models.ProGANComponents import WeightedConv2d, PixelWiseNormalization, ConvBlock, MiniBatchStd
 
 def normalized_mean_squared_error(fake_batch, real_batch):
     nom = torch.linalg.matrix_norm(fake_batch - real_batch[:, None, :, :]) ** 2
@@ -164,9 +163,9 @@ class ConditionalProGAN(torch.nn.Module):
         running_D_loss, running_G_loss = 0, 0
         for data in tqdm(dataloader, desc=f"Epoch {current_epoch + 1}, step {step}, alpha {round(alpha, 2)}: ", total=len(dataloader)):
             mri_batch = data["mr"].to(self.device)
-            us_wave_batch = None #data["us_wave"].to(self.device)
+            us_wave_batch = data["us_wave"].to(self.device)
             coil_batch = None #data["coil"].to(self.device)
-            heat_batch = data["heat"].to(self.device)
+            heat_batch = None #data["heat"].to(self.device)
 
             noise_batch = torch.randn(mri_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
             fake = self.G(noise_batch, us_wave_batch, coil_batch, heat_batch, step, alpha)
@@ -213,17 +212,21 @@ class ConditionalProGAN(torch.nn.Module):
         all_ssim = []
         for data in dataloader:
             mr_batch = data["mr"].to(self.device)
-            us_wave_batch = None #data["us_wave"].to(self.device)
+            us_wave_batch = data["us_wave"].to(self.device)
             coil_batch = None #data["coil"].to(self.device)
-            heat_batch = data["heat"].to(self.device)
+            heat_batch = None #data["heat"].to(self.device)
 
             noise_batch = torch.randn(mr_batch.shape[0], self.noise_vector_length, 1, 1, device=self.device)
             fake = self.G(noise_batch, us_wave_batch, coil_batch, heat_batch, step, alpha)
             fake_upscaled = F.interpolate(fake, scale_factor=2**(self.total_steps - step - 1), mode='nearest')
             nmse = normalized_mean_squared_error(fake_upscaled, mr_batch).detach().cpu().numpy().flatten()
-            curr_ssim = ssim(fake_upscaled, mr_batch[:, None, :, :], self.device).detach().cpu().numpy().flatten()
+            
+            for i in range(fake_upscaled.shape[0]):
+                img1 = fake_upscaled[i].detach().cpu().numpy().squeeze()
+                img2 = mr_batch[i, None, :, :].detach().cpu().numpy().squeeze()
+                curr_ssim = ssim(img1, img2, win_size=11, data_range=2)
+                all_ssim.append(curr_ssim)
             all_nmse.extend(nmse)
-            all_ssim.extend(curr_ssim)
             fake_to_return.extend(fake_upscaled.detach().cpu().numpy())
             real_to_return.extend(mr_batch.detach().cpu().numpy())
 
@@ -326,7 +329,7 @@ def gen_params():
     #     print("---------------")
 
 
-def main():
+def dis_params():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     D_layers=[8, 16, 32, 64, 128, 256]
     D = Discriminator(D_layers).to(device)
@@ -357,6 +360,17 @@ def main():
     print("------")
     
     print(total)
+
+
+def main():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    G_layers=[256, 128, 64, 32, 16, 8]
+    G = Generator(17, 17, 17, G_layers).to(device)
+
+    for name, component in G.surrogate_processor.named_modules():
+        if name:
+            n = sum(p.numel() for p in component.parameters() if p.requires_grad)
+            print(name, n)
     
 
 

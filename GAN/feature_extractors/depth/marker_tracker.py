@@ -17,6 +17,41 @@ def mouse_callback(event, x, y, flags, param):
         print(x, y)
 
 
+def create_tracking_video(root, grayscale_threshold, x_line, roi):
+    paths = glob.glob(os.path.join(root, "*.png"))
+    paths.sort(key=lambda p: float(p.split("_")[-1].replace(".png", "")))
+
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    fps = 30
+    width = roi[1][0]-roi[0][0]
+    height = roi[1][1]-roi[0][1]
+    print(width, height)
+    out = cv2.VideoWriter(f"coil_tracking.mp4", fourcc, fps, (width*6, height*6))
+
+    for p in tqdm(paths[18000:18500]):
+        img = cv2.imread(p)
+        img = img[roi[0][1]:roi[1][1], roi[0][0]:roi[1][0]]
+        img = cv2.resize(img, None, fx=6, fy=6, interpolation=cv2.INTER_LINEAR)
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, mask = cv2.threshold(gray, grayscale_threshold[0], grayscale_threshold[1], cv2.THRESH_BINARY)
+        red_mask = np.zeros_like(img)
+        red_mask[:, :, 2] = mask
+        
+        overlay = cv2.addWeighted(img, .7, red_mask, .3, 0)
+
+        intersection = np.where(mask[:, x_line] != 0)[0][0]
+
+        cv2.line(overlay, [x_line, 0], [x_line, overlay.shape[0]], [255, 0, 0], 2)
+        cv2.circle(overlay, [x_line, intersection], 2, [0, 255, 0], 2)
+        out.write(overlay)
+        cv2.imshow("image", overlay)
+        cv2.waitKey(30)
+
+    cv2.destroyAllWindows()
+    out.release()
+
+
 def track_marker(root, grayscale_threshold, x_line, roi, show=False):
     paths = glob.glob(os.path.join(root, "*.png"))
     paths.sort(key=lambda p: float(p.split("_")[-1].replace(".png", "")))
@@ -28,25 +63,10 @@ def track_marker(root, grayscale_threshold, x_line, roi, show=False):
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gray = cv2.resize(gray, None, fx=6, fy=6, interpolation=cv2.INTER_LINEAR)
-        # img = cv2.resize(img, None, fx=6, fy=6, interpolation=cv2.INTER_LINEAR)
         _, mask = cv2.threshold(gray, grayscale_threshold[0], grayscale_threshold[1], cv2.THRESH_BINARY)
-        # red_mask = np.zeros_like(img)
-        # red_mask[:, :, 2] = mask
-        
-        # overlay = cv2.addWeighted(img, .7, red_mask, .3, 0)
 
         intersection = np.where(mask[:, x_line] != 0)[0][0]
         waveform.append(intersection)
-
-        # cv2.line(overlay, [x_line, 0], [x_line, overlay.shape[0]], [255, 0, 0], 2)
-        # cv2.circle(overlay, [x_line, intersection], 2, [0, 255, 0], 2)
-        # cv2.imshow("image", overlay)
-        # cv2.imwrite("coil.png", overlay)
-        # cv2.waitKey(0)
-
-    # with open("tracked_coil.pickle", "wb") as f:
-    #     pickle.dump(waveform, f)
-
     cv2.destroyAllWindows()
 
     return waveform
@@ -164,4 +184,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    root = "F:\\G_raw\\session2\\rgbd\\rgb"
+    paths = glob.glob(os.path.join(root, "*.png"))
+    roi = get_roi(paths[0])
+    lower, upper = get_grayscale_thresholds(paths[0], roi)
+    x = get_line_position(paths[0], roi)
+
+    create_tracking_video(root, grayscale_threshold=[lower, upper], roi=roi, x_line=x)
+
+    # main()

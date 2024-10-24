@@ -72,9 +72,10 @@ def get_wave_from_us(us, roi):
     
 
 def main():
-        subject = "G2"
+    for subject in ["D1", "D2", "D3", "E1", "E2", "E3"]:
         print(f"Detrending subject {subject}...")
-        path = os.path.join("/Volumes/T9/Formatted_datasets", subject)
+        # path = os.path.join("/Volumes/T9/Formatted_datasets", subject)
+        path = f"F:\\Formatted_datasets\\{subject}"
 
         with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
             surrogates = pickle.load(file)
@@ -97,10 +98,11 @@ def main():
         hilbert_us = hilbert(us, axis=0)
         hilbert_phase = np.angle(hilbert_us)
         hilbert_magnitude = np.abs(hilbert_us)
+
         z = extract_wave(hilbert_phase, roi)
 
-        plt.plot(z)
-        plt.show()
+        # plt.plot(z)
+        # plt.show()
 
         trend = np.zeros_like(z)
         for w in [dbh, sb, hbh, rb, febh, db]:
@@ -110,17 +112,42 @@ def main():
 
         detrended = z - trend
 
-        plt.figure()
-        plt.title("Detrended")
-        plt.plot(detrended - detrended.mean())
-        plt.ylim([-.5, .5])
-        plt.show()
+        # plt.figure()
+        # plt.title("Detrended")
+        # plt.plot(detrended - detrended.mean())
+        # plt.ylim([-.5, .5])
+        # plt.show()
 
         # plt.savefig(f"{subject}.png")
 
-        # with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
-        #     pickle.dump(detrended, file)
+        with open(os.path.join(path, "us_wave_detrended.pickle"), "wb") as file:
+            pickle.dump(detrended, file)
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+
+    for subject in ["D1", "D2", "D3", "E1", "E2", "E3"]:
+        us_path = f"F:\\Formatted_datasets\\{subject}\\us_wave_detrended.pickle"
+        surr_path = f"F:\\Formatted_datasets\\{subject}\\surrogates.pickle"
+
+        with open(us_path, "rb") as file:
+            us_wave_detrended = pickle.load(file)
+
+        with open(surr_path, "rb") as file:
+            surrogates = pickle.load(file)
+            us = np.array(surrogates["us"]).T
+            roi = (0, 1000)
+            hilbert_us = hilbert(us, axis=0)
+            hilbert_phase = np.angle(hilbert_us)
+            hilbert_magnitude = np.abs(hilbert_us)
+
+            us_old = extract_wave(hilbert_phase, roi)
+
+
+        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True)
+        ax1.plot(us_old)
+        ax2.set_title("Before")
+        ax2.plot(us_wave_detrended)
+        ax2.set_title("After")
+        plt.show()

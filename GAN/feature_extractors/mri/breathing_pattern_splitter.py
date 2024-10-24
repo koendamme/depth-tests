@@ -4,19 +4,6 @@ import os
 from matplotlib.backend_bases import MouseButton
 
 
-def main():
-    root = os.path.join("C:", os.sep, "data", "Formatted_datasets")
-    subjects = ["D1", "D2", "D3", "E1", "E2", "E3"]
-
-    for s in subjects:
-        with open(os.path.join(root, s, "mr_wave.pickle"), 'rb') as f:
-            mri_waveform = pickle.load(f)["mri_waveform"]
-
-        d = split_dataset(mri_waveform)
-        with open(os.path.join(root, s, "splits.pickle"), 'wb') as file:
-            pickle.dump(d, file)
-
-
 def split_dataset(mri_waveform):
     patterns = ["Deep BH", "Shallow Breathing", "Half Exhale BH", "Regular Breathing", "Full Exhale BH", "Deep Breathing"]
 
@@ -34,6 +21,19 @@ def split_dataset(mri_waveform):
         plt.close()
 
     return data
+
+
+def main():
+    root = os.path.join("F:", os.sep, "Formatted_datasets")
+
+    for s in ["F4", "G2", "G3", "G4"]:
+        with open(os.path.join(root, s, "mr_wave.pickle"), 'rb') as f:
+            mri_waveform = pickle.load(f)["mri_waveform"]
+
+        d = split_dataset(mri_waveform)
+        with open(os.path.join(root, s, "splits.pickle"), 'wb') as file:
+            print(f"Successfully saved splits for subject {s}")
+            pickle.dump(d, file)
 
 
 if __name__ == '__main__':

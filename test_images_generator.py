@@ -10,38 +10,37 @@ import cv2
 from run_names import combined_runs, heat_runs, coil_runs, us_runs
 
 
-def generate_fake_images(data, G, device):
-    dataloader = DataLoader(data, batch_size=10, shuffle=False, pin_memory=True)
+# def generate_fake_images(data, G, device):
+#     dataloader = DataLoader(data, batch_size=10, shuffle=False, pin_memory=True)
 
-    fake_to_return = []
-    real_to_return = []
+#     fake_to_return = []
+#     real_to_return = []
 
-    for data in dataloader:
-        mr_batch = data["mr"].to(device)
-        wave_batch = None
-        us_wave_batch = data["us_wave"].to(device)
-        coil_batch = data["coil"].to(device)
-        heat_batch = data["heat"].to(device)
-        us_raw_batch = None
+#     for data in dataloader:
+#         mr_batch = data["mr"].to(device)
+#         wave_batch = None
+#         us_wave_batch = data["us_wave"].to(device)
+#         coil_batch = data["coil"].to(device)
+#         heat_batch = data["heat"].to(device)
+#         us_raw_batch = None
 
-        noise_batch = torch.randn(mr_batch.shape[0], 256-32, 1, 1, device=device)
-        fake_batch = G(noise_batch, wave_batch, us_wave_batch, coil_batch, heat_batch, us_raw_batch, 5, 1)
+#         noise_batch = torch.randn(mr_batch.shape[0], 256-32, 1, 1, device=device)
+#         fake_batch = G(noise_batch, wave_batch, us_wave_batch, coil_batch, heat_batch, us_raw_batch, 5, 1)
 
-        fake_to_return.extend(np.uint8((fake_batch[:, 0, :, :].detach().cpu().numpy()+1)/2*255))
-        real_to_return.extend(np.uint8((mr_batch.detach().cpu().numpy()+1)/2*255))
+#         fake_to_return.extend(np.uint8((fake_batch[:, 0, :, :].detach().cpu().numpy()+1)/2*255))
+#         real_to_return.extend(np.uint8((mr_batch.detach().cpu().numpy()+1)/2*255))
 
-    return real_to_return, fake_to_return
+#     return real_to_return, fake_to_return
 
 
 def main():
-    runs = heat_runs
+    runs = us_runs
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     data_root = os.path.join("F:", os.sep, "Formatted_datasets")
-    save_root = os.path.join("F:", os.sep, "results", "heat_model")
+    save_root = os.path.join("F:", os.sep, "results", "us_model")
+    subjects = ["D1", "D2", "D3", "E1", "E2", "E3", "F1", "F3", "F4", "G2", "G3", "G4"]
 
-    for subject in runs.keys():
-        if subject != "A1":
-            continue
+    for subject in subjects:
         os.mkdir(os.path.join(save_root, subject))
         dataset = CustomDataset(data_root, subject)
         splitter = DatasetSplitter(dataset, .8, .1, .1)
@@ -53,9 +52,9 @@ def main():
 
         model_path = f"C:\\dev\\depth-tests\\GAN\\best_models\\{runs[subject]}.pth"
         G = Generator(
-            heat_length=dataset[0]["heat"].shape[0],
+            heat_length=0, #dataset[0]["heat"].shape[0],
             coil_length=0, #dataset[0]["coil"].shape[0],
-            us_length=0, #dataset[0]["us_wave"].shape[0],
+            us_length=dataset[0]["us_wave"].shape[0],
             layers=[256, 128, 64, 32, 16, 8],
         ).to(device)
         G.load_state_dict(torch.load(model_path))
@@ -69,9 +68,9 @@ def main():
             i = 0
             for data in dataloader:
                 mr_batch = data["mr"].to(device)
-                us_wave_batch = None #data["us_wave"].to(device)
+                us_wave_batch = data["us_wave"].to(device)
                 coil_batch = None #data["coil"].to(device)
-                heat_batch = data["heat"].to(device)
+                heat_batch = None #data["heat"].to(device)
 
                 noise_batch = torch.randn(mr_batch.shape[0], 256-32, 1, 1, device=device)
                 fake_batch = G(noise_batch, us_wave_batch, coil_batch, heat_batch, 5, 1)
@@ -86,16 +85,4 @@ def main():
 
 
 if __name__ == '__main__':
-    G = Generator(
-        heat_length=14,
-        coil_length=14,  # dataset[0]["coil"].shape[0],
-        us_length=14,  # dataset[0]["us_wave"].shape[0],
-        layers=[256, 128, 64, 32, 16, 8],
-    )
-
-    model_parameters = filter(lambda p: p.requires_grad, G.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
-    print(params)
-
-
-    # main()
+    main()

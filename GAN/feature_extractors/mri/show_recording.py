@@ -5,22 +5,26 @@ import pickle
 
 
 def main():
-    s = "E3"
-    file_dir = os.path.join("C:", os.sep, "data", "Formatted_datasets", s, "mr.pickle")
+    s = "A2"
+    file_dir = f"F:\\Formatted_datasets\\{s}\\mr.pickle"
 
     with open(file_dir, 'rb') as file:
         imgs = pickle.load(file)["images"]
 
         fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-        fps = 15.0
-        out = cv2.VideoWriter(f"{s}.mp4", fourcc, fps, (192, 192), 0)
+        # fps = 1/.35560
+        fps = 10
+        out = cv2.VideoWriter(f"{s}_preproc.mp4", fourcc, fps, (128, 128), 0)
 
+        max_value = np.max(imgs)
         current_frame = 0
         paused = False
         while current_frame < len(imgs):
             img = imgs[current_frame]
+            # img = np.uint8(img/max_value*255)
             img = np.clip(img, a_min=0, a_max=255).astype(np.uint8)
             img = cv2.addWeighted(img, 2, np.zeros(img.shape, img.dtype), 0, 0)
+            img = img[:128, 32:160]
             out.write(img)
 
             cv2.imshow("Frame", img)

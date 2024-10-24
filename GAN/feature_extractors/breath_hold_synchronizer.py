@@ -70,24 +70,24 @@ def synchronize(mri_waveform, us_waveform, us_freq, mri_freq, show_result=True):
 
 
 def main():
-    subject = "A1"
-    path = os.path.join("F:", os.sep, "Formatted_datasets", subject)
+    for subject in ["G3", "G4"]:
+        path = os.path.join("F:", os.sep, "Formatted_datasets", subject)
 
-    with open(os.path.join(path, "mr_wave.pickle"), "rb") as file:
-        mr_wave = pickle.load(file)["mri_waveform"]
+        with open(os.path.join(path, "mr_wave.pickle"), "rb") as file:
+            mr_wave = pickle.load(file)["mri_waveform"]
 
-    with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
-        us = pickle.load(file)["us"]
-        us_wave = get_wave_from_us(us.T, (0, 1000))
+        with open(os.path.join(path, "surrogates.pickle"), "rb") as file:
+            us = pickle.load(file)["us"]
+            us_wave = get_wave_from_us(us.T, (0, 1000))
 
-    TR = 0.35560
-    us_freq, mri_freq = 50, 1 / TR
+        TR = 0.35560
+        us_freq, mri_freq = 50, 1 / TR
 
-    mr2us = synchronize(mr_wave, us_wave, us_freq, mri_freq)
+        mr2us = synchronize(mr_wave, us_wave, us_freq, mri_freq)
 
-    with open(os.path.join(path, "mr2us_new.pickle"), 'wb') as file:
-        pickle.dump({"mr2us": mr2us}, file)
-        print(f"Successfully saved synchronization for subject {subject}")
+        with open(os.path.join(path, "mr2us_new.pickle"), 'wb') as file:
+            pickle.dump({"mr2us": mr2us}, file)
+            print(f"Successfully saved synchronization for subject {subject}")
 
 
 if __name__ == '__main__':

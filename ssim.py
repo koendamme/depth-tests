@@ -1,10 +1,10 @@
 import glob
 import cv2
 from skimage.metrics import structural_similarity
-import numpy as np
 import matplotlib.pyplot as plt
 import json
 import os
+from tqdm import tqdm
 
 
 def own_ssim(real, fake):
@@ -25,7 +25,7 @@ def own_ssim(real, fake):
 
 def compute_ssim(path, window):
     paths = glob.glob(path)
-    paths.sort(key=lambda p: int(p.split("/")[-1].replace(".png", "")))
+    paths.sort(key=lambda p: int(p.split("\\")[-1].replace(".png", "")))
 
     ssims = []
     for path in paths:
@@ -48,14 +48,11 @@ def compute_results(path):
         "heat_model": {"Breathing": [], "Holding": []},
         "us_model": {"Breathing": [], "Holding": []}
     }
-    for w in [11, 23, 35, 49, 75, 83, 99, 111, 127]:
+    for w in tqdm([11, 23, 35, 49, 75, 83, 99, 111, 127]):
         for model in results.keys():
             breathing_ssims, holding_ssims = [], []
-            print(f"Computing ssim values for {model}...")
-            for s in ["A", "B", "C"]:
-                for session in [1, 2, 3]:
-                    subject = s+str(session)
-
+            # print(f"Computing ssim values for {model}...")
+            for subject in ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3", "D1", "D2", "D3", "E1", "E2", "E3", "F1", "F3", "F4", "G2", "G3", "G4"]:
                     subject_path = os.path.join(path, model, subject)
 
                     for breathing in ["Deep Breathing", "Regular Breathing", "Shallow Breathing"]:
@@ -75,18 +72,17 @@ def compute_results(path):
 def create_figure():
     plt.rcParams["font.family"] = "Times New Roman"
     plt.rcParams.update({'font.size': 13})
-    # path = "F:\\results\\combined_model\\A1\\Regular Breathing\\*.png"
-    # path = "/Volumes/T9/results"
-    # results = compute_results(path)
-    #
-    # with open('ssim_results.json', 'w', encoding='utf-8') as f:
-    #     json.dump(results, f, ensure_ascii=False, indent=4)
+    path = "F:\\results"
+    results = compute_results(path)
+    
+    with open('ssim_results.json', 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False, indent=4)
 
-    with open('ssim_results.json', 'r') as f:
-        results = json.load(f)
+    # with open('ssim_results.json', 'r') as f:
+    #     results = json.load(f)
 
     window_sizes = [11, 23, 35, 49, 75, 83, 99, 111, 127]
-    models = ["Combined", "Coil", "Heat", "Ultrasound"]
+    models = ["Combined", "External", "Airflow", "internal"]
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharey=True, figsize=(8, 5))
 
